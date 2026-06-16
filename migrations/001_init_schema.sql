@@ -8,7 +8,7 @@ CREATE TYPE leave_type AS ENUM ('vacation', 'sick', 'remote');
 CREATE TYPE leave_status AS ENUM ('pending', 'approved', 'rejected');
 
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT get_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -23,18 +23,18 @@ CREATE TABLE users (
     mobile VARCHAR(255) NOT NULL,
     skype VARCHAR(255) NOT NULL DEFAULT '',
     active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESHAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE projects (
-    id UUID PRIMARY KEY DEFAULT get_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     status project_status NOT NULL DEFAULT 'active',
     priority priority_type NOT NULL,
     lead_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    created_at TIMESHAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     icon_color VARCHAR(50) NOT NULL,
     start_date DATE,
     deadline DATE,
@@ -48,8 +48,8 @@ CREATE TABLE project_members (
 );
 
 CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT get_random_uuid(),
-    project_id NOT NULL REFERENCES projects(id) on DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id) on DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     status task_status NOT NULL DEFAULT 'todo',

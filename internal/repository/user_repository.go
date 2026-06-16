@@ -20,7 +20,7 @@ type postgresUserRepository struct {
 	db *sql.DB
 }
 
-func newUserRepository(db *sql.DB) UserRepository {
+func NewUserRepository(db *sql.DB) UserRepository {
 	return &postgresUserRepository{db: db}
 }
 
@@ -33,7 +33,7 @@ func (r *postgresUserRepository) GetUserByEmail(ctx context.Context, email strin
 
 	row := r.db.QueryRowContext(ctx, stmt, email)
 
-	err := row.Scan(&u.ID, &u.Name, &u.Password, &u.AvatarURL, &u.Role, &u.Position, &u.Level, &u.Gender, &birthday, &u.Company, &u.Location, &u.Mobile, &u.Skype, &u.Active)
+	err := row.Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.AvatarURL, &u.Role, &u.Position, &u.Level, &u.Gender, &birthday, &u.Company, &u.Location, &u.Mobile, &u.Skype, &u.Active)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrUserNotFound

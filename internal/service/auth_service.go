@@ -36,6 +36,7 @@ func (s *authService) Login(ctx context.Context, email string, password string) 
 		if err == repository.ErrUserNotFound {
 			return nil, ErrInvalidCredentials
 		}
+		return nil, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
