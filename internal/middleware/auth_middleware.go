@@ -28,7 +28,7 @@ func NewAuthMiddleware(secret string) *AuthMiddleware {
 func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" || strings.HasPrefix(authHeader, "Bearer ") {
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			http.Error(w, "Unauthorized: Missing or invalid token", http.StatusUnauthorized)
 			return
 		}
@@ -57,7 +57,7 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 		userRole := claims["role"].(string)
 
 		ctx := context.WithValue(r.Context(), UserIDkey, userID)
-		ctx = context.WithValue(ctx, UserRoleKey, userRole)
+		ctx = context.WithValue(ctx, UserRoleKey, models.Role(userRole))
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
