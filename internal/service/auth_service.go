@@ -15,6 +15,7 @@ var ErrInvalidCredentials = errors.New("Invalid Email or Password")
 
 type AuthService interface {
 	Login(ctx context.Context, email string, password string) (*models.AuthSession, error)
+	RefreshSession(ctx context.Context, refreshToken string) (*models.AuthSession, error)
 	SeedAdmin(ctx context.Context, email string, password string) error
 }
 
@@ -52,6 +53,45 @@ func (s *authService) Login(ctx context.Context, email string, password string) 
 	return &models.AuthSession{
 		Token:        accessToken,
 		RefreshToken: refreshToken,
+		User:         *user,
+	}, nil
+}
+
+func (s *authService) RefreshSession(ctx context.Context, refreshToken string) (*models.AuthSession, error) {
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (any, error) {
+		return s.jwtSecret, nil
+	})
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid refresh token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid map claims")
+	}
+
+	userID := claims["sub"].(string)
+
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			return nil, errors.New("User doesnt exist")
+		}
+		return nil, err
+	}
+
+	if !user.Active {
+		return nil, errors.New("user account deactivated")
+	}
+
+	newSessionToken, newRefreshToken, err := s.GenerateTokens(userID, string(user.Role))
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.AuthSession{
+		Token:        newSessionToken,
+		RefreshToken: newRefreshToken,
 		User:         *user,
 	}, nil
 }
