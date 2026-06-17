@@ -20,6 +20,7 @@ func main() {
 
 	userRepo := repository.NewUserRepository(cfg.DB)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	userService := service.NewUserService(userRepo)
 
 	err := authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
 	if err != nil {
@@ -28,6 +29,7 @@ func main() {
 
 	appHandlers := router.Handlers{
 		Auth: handler.NewAuthHandler(authService),
+		User: handler.NewUserHandler(userService),
 	}
 
 	appMws := router.Middlewares{

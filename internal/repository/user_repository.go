@@ -13,6 +13,7 @@ var ErrUserNotFound = errors.New("user not found")
 
 type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
+	GetUserByID(ctx context.Context, ID string) (*models.User, error)
 	CreateUser(ctx context.Context, user *models.User) error
 }
 
@@ -41,6 +42,26 @@ func (r *postgresUserRepository) GetUserByEmail(ctx context.Context, email strin
 		return nil, err
 	}
 
+	u.Birthday = birthday.Format("2006-01-02")
+
+	return &u, nil
+}
+
+func (r *postgresUserRepository) GetUserByID(ctx context.Context, ID string) (*models.User, error) {
+	query := `
+			SELECT id, name, email, password_hash, avatar_url, role, position, level, gender, birthday, company, location, mobile, skype, active FROM users WHERE id = $1
+			`
+
+	var u models.User
+	var birthday time.Time
+
+	err := r.db.QueryRowContext(ctx, query, ID).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.AvatarURL, &u.Role, &u.Position, &u.Level, &u.Gender, &birthday, &u.Company, &u.Location, &u.Mobile, &u.Skype, &u.Active)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
 	u.Birthday = birthday.Format("2006-01-02")
 
 	return &u, nil
