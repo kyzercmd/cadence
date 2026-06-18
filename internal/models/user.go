@@ -23,3 +23,20 @@ type AuthSession struct {
 	RefreshToken string `json:"refreshToken"`
 	User         User   `json:"user"`
 }
+
+type UserUpdatePayload struct {
+	Name      *string
+	Email     *string
+	Password  *string
+	AvatarURL *string
+	Role      *Role
+	Position  *string
+	Level     *Level
+	Gender    *Gender
+	Birthday  *string
+	Company   *string
+	Location  *string
+	Mobile    *string
+	Skype     *string
+	Active    *bool
+}

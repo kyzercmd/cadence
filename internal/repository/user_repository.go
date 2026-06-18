@@ -15,6 +15,7 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	GetUserByID(ctx context.Context, ID string) (*models.User, error)
 	CreateUser(ctx context.Context, user *models.User) error
+	UpdateUser(ctx context.Context, user *models.User) error
 }
 
 type postgresUserRepository struct {
@@ -79,4 +80,25 @@ func (r *postgresUserRepository) CreateUser(ctx context.Context, user *models.Us
 	err = r.db.QueryRowContext(ctx, query, user.Name, user.Email, user.Password, user.AvatarURL, user.Role, user.Position, user.Level, user.Gender, parsedBirthday, user.Company, user.Location, user.Mobile, user.Skype, user.Active).Scan(&user.ID)
 
 	return err
+}
+
+func (r *postgresUserRepository) UpdateUser(ctx context.Context, user *models.User) error {
+	query := `
+			UPDATE users SET name = $1, email = $2, password_hash = $3, avatar_url = $4, role = $5, position = $6, level = $7, gender = $8, birthday = $9, company = $10, location = $11, mobile = $12, skype = $13, active = $14 WHERE id = $15
+			`
+	result, err := r.db.ExecContext(ctx, query, user.Name, user.Email, user.Password, user.AvatarURL, user.Role, user.Position, user.Level, user.Gender, user.Birthday, user.Company, user.Location, user.Mobile, user.Skype, user.Active, user.ID)
+	if err != nil {
+		return err
+	}
+
+	rowsEffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsEffected == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
 }
