@@ -13,6 +13,7 @@ type UserService interface {
 	UpdateSelfProfile(ctx context.Context, userID string, payload *models.UserUpdatePayload) (*models.User, error)
 	HRUpdateEmployee(ctx context.Context, targetUserID string, payload *models.UserUpdatePayload) (*models.User, error)
 	AdminUpdateEmployee(ctx context.Context, targetUserID string, payload *models.UserUpdatePayload) (*models.User, error)
+	GetUserProfile(ctx context.Context, userID string) (*models.User, error)
 }
 
 type userService struct {
@@ -166,6 +167,14 @@ func (s *userService) AdminUpdateEmployee(ctx context.Context, targetUserID stri
 	}
 
 	err = s.repo.UpdateUser(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *userService) GetUserProfile(ctx context.Context, userID string) (*models.User, error) {
+	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

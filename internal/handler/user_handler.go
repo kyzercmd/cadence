@@ -2,10 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/kyzercmd/cadence/internal/models"
+	"github.com/kyzercmd/cadence/internal/repository"
 	"github.com/kyzercmd/cadence/internal/service"
 )
 
@@ -68,7 +70,7 @@ func (h *UserHandler) CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 
 	json.NewEncoder(w).Encode(createdUser)
 }
@@ -205,4 +207,37 @@ func (h *UserHandler) AdminUpdateEmployee(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(updatedUser)
+}
+
+func (h *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(middleware.UserIDkey).(string)
+	user, err := h.userService.GetUserProfile(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to get user", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
+func (h *UserHandler) GetEmployee(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("id")
+
+	user, err := h.userService.GetUserProfile(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to get user", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(user)
 }
