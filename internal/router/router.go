@@ -3,9 +3,9 @@ package router
 import (
 	"net/http"
 
+	"github.com/justinas/alice"
 	"github.com/kyzercmd/cadence/internal/handler"
 	"github.com/kyzercmd/cadence/internal/middleware"
-	"github.com/kyzercmd/cadence/internal/models"
 )
 
 type Handlers struct {
@@ -27,11 +27,17 @@ func SetupRoutes(h Handlers, m Middlewares) *http.ServeMux {
 }
 
 func mapAuthRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
-	mux.HandleFunc("/api/auth/login", h.Auth.Login)
-	mux.HandleFunc("/api/auth/refresh", h.Auth.Refresh)
+	mux.HandleFunc("POST /api/auth/login", h.Auth.Login)
+	mux.HandleFunc("POST /api/auth/refresh", h.Auth.Refresh)
 }
 
 func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
-	createEmployeeChain := m.Auth.RequireAuth(middleware.RequireRole(models.RoleAdmin)(http.HandlerFunc(h.User.CreateEmployee)))
-	mux.Handle("/api/employee", createEmployeeChain)
+	protectedChain := alice.New(m.Auth.RequireAuth)
+	HRChain := protectedChain.Append(middleware.RequireRole("hr", "admin"))
+	AdminChain := protectedChain.Append(middleware.RequireRole("admin"))
+
+	mux.Handle("POST /api/admin/employee", AdminChain.ThenFunc(h.User.CreateEmployee))
+	mux.Handle("PATCH /api/employee/me", protectedChain.ThenFunc(h.User.UpdateSelf))
+	mux.Handle("PATCH /api/employee/{id}", HRChain.ThenFunc(h.User.HRUpdateEmployee))
+	mux.Handle("PATCH /api/admin/employee/{id}", AdminChain.ThenFunc(h.User.AdminUpdateEmployee))
 }
