@@ -40,6 +40,10 @@ func (s *authService) Login(ctx context.Context, email string, password string) 
 		return nil, err
 	}
 
+	if !user.Active {
+		return nil, errors.New("user account deactivated")
+	}
+
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return nil, ErrInvalidCredentials
