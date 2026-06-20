@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
 
 type Config struct {
@@ -25,7 +25,7 @@ func LoadConfig() *Config {
 		log.Fatal("DB DSN is required")
 	}
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		log.Fatal("Failed to open database %w", err)
 	}

@@ -64,6 +64,7 @@ CREATE TABLE tasks (
 CREATE TABLE task_assignees (
     task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    spent_hours NUMERIC(5, 2) NOT NULL DEFAULT 0,
     PRIMARY KEY (task_id, user_id)
 );
 
