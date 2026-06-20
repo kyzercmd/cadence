@@ -2,10 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/kyzercmd/cadence/internal/models"
+	"github.com/kyzercmd/cadence/internal/repository"
 	"github.com/kyzercmd/cadence/internal/service"
 )
 
@@ -53,6 +55,41 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *TaskHandler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
+	taskID := r.PathValue("id")
+
+	var payload models.UpdateTaskStatusPayload
+
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		http.Error(w, "Invalid Request Body", http.StatusBadGateway)
+		return
+	}
+
+	validStatuses := map[models.TaskStatus]bool{"todo": true, "in_progress": true, "in_review": true, "done": true}
+	if !validStatuses[payload.Status] {
+		http.Error(w, "Invalid status", http.StatusBadRequest)
+		return
+	}
+
+	err = h.taskService.UpdateTaskStatus(r.Context(), payload.Status, taskID)
+	if err != nil {
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			http.Error(w, "Task not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to update task status", http.StatusInternalServerError)
+	}
+
+	response := map[string]any{
+		"message": "status updated successfully",
+		"taskID":  taskID,
+	}
+	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(response)
 }

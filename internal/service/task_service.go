@@ -10,6 +10,7 @@ import (
 type TaskService interface {
 	GetMyTasks(ctx context.Context, userID string) ([]*models.MyTaskResponse, error)
 	CreateTask(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error)
+	UpdateTaskStatus(ctx context.Context, status models.TaskStatus, taskID string) error
 }
 
 type taskService struct {
@@ -36,4 +37,8 @@ func (s *taskService) CreateTask(ctx context.Context, projectID string, payload 
 	}
 
 	return taskID, nil
+}
+
+func (s *taskService) UpdateTaskStatus(ctx context.Context, status models.TaskStatus, taskID string) error {
+	return s.repo.UpdateTaskStatus(ctx, status, taskID)
 }

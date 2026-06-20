@@ -9,10 +9,12 @@ import (
 )
 
 var ErrProjectNotFound = errors.New("Project not found")
+var ErrTaskNotFound = errors.New("Task not found")
 
 type TaskRepository interface {
 	GetTaskByUserID(ctx context.Context, userID string) ([]*models.MyTaskResponse, error)
 	CreateTaskWithAssignees(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error)
+	UpdateTaskStatus(ctx context.Context, status models.TaskStatus, taskID string) error
 }
 
 type postgresTaskRepositoy struct {
@@ -102,4 +104,24 @@ func (r *postgresTaskRepositoy) CreateTaskWithAssignees(ctx context.Context, pro
 		return "", err
 	}
 	return newTaskID, nil
+}
+
+func (r *postgresTaskRepositoy) UpdateTaskStatus(ctx context.Context, taskID models.TaskStatus, status string) error {
+	query := `
+			UPDATE tasks SET status = $1 WHERE id = $2
+			`
+
+	result, err := r.db.ExecContext(ctx, query, status, taskID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrTaskNotFound
+	}
+	return nil
 }

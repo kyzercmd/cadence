@@ -52,3 +52,7 @@ type CreateTaskPayload struct {
 	Attachments   []string `json:"attachments"`
 	Links         []string `json:"links"`
 }
+
+type UpdateTaskStatusPayload struct {
+	Status TaskStatus `json:"status"`
+}

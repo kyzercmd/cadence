@@ -43,6 +43,7 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("PATCH /api/users/me", protectedChain.ThenFunc(h.User.UpdateSelf))
 	mux.Handle("PATCH /api/users/{id}", HRChain.ThenFunc(h.User.HRUpdateEmployee))
 	mux.Handle("PATCH /api/admin/users/{id}", AdminChain.ThenFunc(h.User.AdminUpdateEmployee))
+	mux.Handle("PATCH /api/tasks/{id}/status", protectedChain.ThenFunc(h.Task.UpdateTaskStatus))
 
 	mux.Handle("GET /api/users/me", protectedChain.ThenFunc(h.User.GetSelf))
 	mux.Handle("GET /api/users/{id}", HRChain.ThenFunc(h.User.GetEmployee))
