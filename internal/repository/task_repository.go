@@ -3,19 +3,23 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/kyzercmd/cadence/internal/models"
 )
 
+var ErrProjectNotFound = errors.New("Project not found")
+
 type TaskRepository interface {
 	GetTaskByUserID(ctx context.Context, userID string) ([]*models.MyTaskResponse, error)
+	CreateTaskWithAssignees(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error)
 }
 
 type postgresTaskRepositoy struct {
 	db *sql.DB
 }
 
-func newTaskRepository(db *sql.DB) TaskRepository {
+func NewTaskRepository(db *sql.DB) TaskRepository {
 	return &postgresTaskRepositoy{db: db}
 }
 
@@ -56,4 +60,46 @@ func (r *postgresTaskRepositoy) GetTaskByUserID(ctx context.Context, userID stri
 	}
 
 	return tasks, nil
+}
+
+func (r *postgresTaskRepositoy) CreateTaskWithAssignees(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	var newTaskID string
+
+	query := `
+			INSERT INTO tasks (project_id, name, description, priority, estimate_hours, due_date, attachments, links)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			RETURNING id
+			`
+	err = tx.QueryRowContext(ctx, query, projectID, payload.Name, payload.Description, payload.Priority, payload.EstimateHours, payload.DueDate, payload.Attachments, payload.Links).Scan(&newTaskID)
+	if err != nil {
+		return "", err
+	}
+
+	if len(payload.AssigneeIDs) > 0 {
+		query := `
+				INSERT INTO task_assignees (task_id, user_id)
+				VALUES ($1, $2)
+				`
+		for _, userID := range payload.AssigneeIDs {
+			result, err := tx.ExecContext(ctx, query, newTaskID, userID)
+			if err != nil {
+				return "", err
+			}
+			if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+				return "", errors.New("No rows affected")
+			}
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return "", err
+	}
+	return newTaskID, nil
 }

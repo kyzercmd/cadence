@@ -9,13 +9,14 @@ import (
 
 type TaskService interface {
 	GetMyTasks(ctx context.Context, userID string) ([]*models.MyTaskResponse, error)
+	CreateTask(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error)
 }
 
 type taskService struct {
 	repo repository.TaskRepository
 }
 
-func newTaskService(repo repository.TaskRepository) TaskService {
+func NewTaskService(repo repository.TaskRepository) TaskService {
 	return &taskService{repo: repo}
 }
 
@@ -26,4 +27,13 @@ func (s *taskService) GetMyTasks(ctx context.Context, userID string) ([]*models.
 	}
 
 	return tasks, nil
+}
+
+func (s *taskService) CreateTask(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error) {
+	taskID, err := s.repo.CreateTaskWithAssignees(ctx, projectID, payload)
+	if err != nil {
+		return "", err
+	}
+
+	return taskID, nil
 }

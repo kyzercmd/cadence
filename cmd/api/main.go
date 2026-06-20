@@ -19,8 +19,11 @@ func main() {
 	defer cfg.DB.Close()
 
 	userRepo := repository.NewUserRepository(cfg.DB)
+	taskRepo := repository.NewTaskRepository(cfg.DB)
+
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	userService := service.NewUserService(userRepo)
+	taskService := service.NewTaskService(taskRepo)
 
 	err := authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
 	if err != nil {
@@ -30,6 +33,7 @@ func main() {
 	appHandlers := router.Handlers{
 		Auth: handler.NewAuthHandler(authService),
 		User: handler.NewUserHandler(userService),
+		Task: handler.NewTaskHandler(taskService),
 	}
 
 	appMws := router.Middlewares{

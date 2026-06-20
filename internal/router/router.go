@@ -38,6 +38,7 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	AdminChain := protectedChain.Append(middleware.RequireRole("admin"))
 
 	mux.Handle("POST /api/admin/employee", AdminChain.ThenFunc(h.User.CreateEmployee))
+	mux.Handle("POST /api/projects/{id}/tasks", protectedChain.ThenFunc(h.Task.CreateTask))
 
 	mux.Handle("PATCH /api/users/me", protectedChain.ThenFunc(h.User.UpdateSelf))
 	mux.Handle("PATCH /api/users/{id}", HRChain.ThenFunc(h.User.HRUpdateEmployee))

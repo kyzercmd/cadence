@@ -34,10 +34,21 @@ type Task struct {
 }
 
 type MyTaskResponse struct {
-	ID          string  `json:"id"`
-	TaskName    string  `json:"taskName"`
-	Status      string  `json:"status"`
-	Priority    string  `json:"priority"`
-	DueDate     *string `json:"dueDate"`
-	ProjectName string  `json:"projectName"`
+	ID          string     `json:"id"`
+	TaskName    string     `json:"taskName"`
+	Status      TaskStatus `json:"status"`
+	Priority    Priority   `json:"priority"`
+	DueDate     *string    `json:"dueDate"`
+	ProjectName string     `json:"projectName"`
+}
+
+type CreateTaskPayload struct {
+	Name          string   `json:"name"`
+	Description   *string  `json:"description"`
+	Priority      Priority `json:"priority"`
+	EstimateHours float64  `json:"estimateHours"`
+	DueDate       *string  `json:"dueDate"` // YYYY-MM-DD
+	AssigneeIDs   []string `json:"assigneeIds"`
+	Attachments   []string `json:"attachments"`
+	Links         []string `json:"links"`
 }
