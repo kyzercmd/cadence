@@ -12,7 +12,6 @@ type Project struct {
 	LeadID      string     `json:"leadId"`
 	MemberIDs   []string   `json:"memberIds"`
 	CreatedAt   time.Time  `json:"createdAt"`
-	IconColor   string     `json:"iconColor"`
 	StartDate   *time.Time `json:"startDate,omitempty"`
 	Deadline    *time.Time `json:"deadline,omitempty"`
 	ImageURL    *string    `json:"imageUrl,omitempty"`
@@ -32,4 +31,13 @@ type Task struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 	Attachments   []string   `json:"attachments,omitempty"`
 	Links         []string   `json:"links,omitempty"`
+}
+
+type MyTaskResponse struct {
+	ID          string  `json:"id"`
+	TaskName    string  `json:"taskName"`
+	Status      string  `json:"status"`
+	Priority    string  `json:"priority"`
+	DueDate     *string `json:"dueDate"`
+	ProjectName string  `json:"projectName"`
 }

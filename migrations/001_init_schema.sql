@@ -35,7 +35,6 @@ CREATE TABLE projects (
     priority priority_type NOT NULL,
     lead_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    icon_color VARCHAR(50) NOT NULL,
     start_date DATE,
     deadline DATE,
     image_url TEXT
