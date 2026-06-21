@@ -56,3 +56,15 @@ type CreateTaskPayload struct {
 type UpdateTaskStatusPayload struct {
 	Status TaskStatus `json:"status"`
 }
+
+type UpdateTaskPayload struct {
+	Name          string     `json:"name"`
+	Description   *string    `json:"description"`
+	Status        TaskStatus `json:"status"`
+	Priority      Priority   `json:"priority"`
+	EstimateHours float64    `json:"estimateHours"`
+	DueDate       *string    `json:"dueDate"` //YYYY-MM-DD
+	AssigneeIDs   []string   `json:"assigneeIds"`
+	Attachments   []string   `json:"attachments"`
+	Links         []string   `json:"links"`
+}

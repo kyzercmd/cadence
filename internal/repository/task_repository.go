@@ -15,6 +15,7 @@ type TaskRepository interface {
 	GetTaskByUserID(ctx context.Context, userID string) ([]*models.MyTaskResponse, error)
 	CreateTaskWithAssignees(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error)
 	UpdateTaskStatus(ctx context.Context, status models.TaskStatus, taskID string) error
+	UpdateTask(ctx context.Context, taskID string, payload *models.UpdateTaskPayload) error
 }
 
 type postgresTaskRepositoy struct {
@@ -106,7 +107,7 @@ func (r *postgresTaskRepositoy) CreateTaskWithAssignees(ctx context.Context, pro
 	return newTaskID, nil
 }
 
-func (r *postgresTaskRepositoy) UpdateTaskStatus(ctx context.Context, taskID models.TaskStatus, status string) error {
+func (r *postgresTaskRepositoy) UpdateTaskStatus(ctx context.Context, status models.TaskStatus, taskID string) error {
 	query := `
 			UPDATE tasks SET status = $1 WHERE id = $2
 			`
@@ -123,5 +124,52 @@ func (r *postgresTaskRepositoy) UpdateTaskStatus(ctx context.Context, taskID mod
 	if rowsAffected == 0 {
 		return ErrTaskNotFound
 	}
+	return nil
+}
+
+func (r *postgresTaskRepositoy) UpdateTask(ctx context.Context, taskID string, payload *models.UpdateTaskPayload) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := `
+			UPDATE tasks SET name = $1, description = $2, status = $3, priority = $4, estimate_hour = $5, due_date = $6, attachments = $7, links = $8 WHERE id = $9
+			`
+
+	result, err := tx.ExecContext(ctx, query, payload.Name, payload.Description, payload.Status, payload.Priority, payload.EstimateHours, payload.DueDate, payload.Attachments, payload.Links, taskID)
+	if err != nil {
+		return err
+	}
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return ErrTaskNotFound
+	}
+
+	deleteQuery := `
+					DELETE FROM task_assignees WHERE task_id = $1
+				`
+	_, err = tx.ExecContext(ctx, deleteQuery, taskID)
+	if err != nil {
+		return err
+	}
+
+	if len(payload.AssigneeIDs) > 0 {
+		insertQuery := `
+					INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2)
+					`
+		for _, userID := range payload.AssigneeIDs {
+			_, err := tx.ExecContext(ctx, insertQuery, taskID, userID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

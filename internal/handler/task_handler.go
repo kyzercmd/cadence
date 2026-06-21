@@ -93,3 +93,38 @@ func (h *TaskHandler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 }
+
+func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	taskID := r.PathValue("id")
+
+	var payload models.UpdateTaskPayload
+
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if payload.Name == "" {
+		http.Error(w, "Task name is required", http.StatusBadRequest)
+		return
+	}
+
+	err = h.taskService.UpdateTask(r.Context(), taskID, &payload)
+	if err != nil {
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to update task", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]any{
+		"message": "Task updated successfully",
+		"taskID":  taskID,
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(response)
+}
