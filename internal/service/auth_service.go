@@ -11,8 +11,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrInvalidCredentials = errors.New("Invalid Email or Password")
-
 type AuthService interface {
 	Login(ctx context.Context, email string, password string) (*models.AuthSession, error)
 	RefreshSession(ctx context.Context, refreshToken string) (*models.AuthSession, error)
@@ -34,19 +32,19 @@ func NewAuthService(repo repository.UserRepository, secret string) AuthService {
 func (s *authService) Login(ctx context.Context, email string, password string) (*models.AuthSession, error) {
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		if err == repository.ErrUserNotFound {
-			return nil, ErrInvalidCredentials
+		if err == models.ErrUserNotFound {
+			return nil, models.ErrInvalidCredentials
 		}
 		return nil, err
 	}
 
 	if !user.Active {
-		return nil, errors.New("user account deactivated")
+		return nil, models.ErrUserDeactivated
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return nil, ErrInvalidCredentials
+		return nil, models.ErrInvalidCredentials
 	}
 
 	accessToken, refreshToken, err := s.GenerateTokens(user.ID, string(user.Role))
@@ -66,26 +64,26 @@ func (s *authService) RefreshSession(ctx context.Context, refreshToken string) (
 		return s.jwtSecret, nil
 	})
 	if err != nil || !token.Valid {
-		return nil, errors.New("invalid refresh token")
+		return nil, models.ErrInvalidRefreshToken
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, errors.New("invalid map claims")
+		return nil, models.ErrInvalidMapClaims
 	}
 
 	userID := claims["sub"].(string)
 
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
-		if err == repository.ErrUserNotFound {
-			return nil, errors.New("User doesnt exist")
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, err
 		}
 		return nil, err
 	}
 
 	if !user.Active {
-		return nil, errors.New("user account deactivated")
+		return nil, models.ErrUserDeactivated
 	}
 
 	newSessionToken, newRefreshToken, err := s.GenerateTokens(userID, string(user.Role))

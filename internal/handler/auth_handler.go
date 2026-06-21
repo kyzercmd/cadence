@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/kyzercmd/cadence/internal/models"
 	"github.com/kyzercmd/cadence/internal/service"
 )
 
@@ -34,7 +35,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	session, err := h.authService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
-		if err == service.ErrInvalidCredentials {
+		if err == models.ErrInvalidCredentials {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}

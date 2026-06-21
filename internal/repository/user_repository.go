@@ -3,13 +3,10 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"github.com/kyzercmd/cadence/internal/models"
 )
-
-var ErrUserNotFound = errors.New("user not found")
 
 type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
@@ -38,7 +35,7 @@ func (r *postgresUserRepository) GetUserByEmail(ctx context.Context, email strin
 	err := row.Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.AvatarURL, &u.Role, &u.Position, &u.Level, &u.Gender, &birthday, &u.Company, &u.Location, &u.Mobile, &u.Skype, &u.Active)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
+			return nil, models.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -59,7 +56,7 @@ func (r *postgresUserRepository) GetUserByID(ctx context.Context, ID string) (*m
 	err := r.db.QueryRowContext(ctx, query, ID).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.AvatarURL, &u.Role, &u.Position, &u.Level, &u.Gender, &birthday, &u.Company, &u.Location, &u.Mobile, &u.Skype, &u.Active)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
+			return nil, models.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -97,7 +94,7 @@ func (r *postgresUserRepository) UpdateUser(ctx context.Context, user *models.Us
 	}
 
 	if rowsEffected == 0 {
-		return ErrUserNotFound
+		return models.ErrUserNotFound
 	}
 
 	return nil

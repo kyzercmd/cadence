@@ -99,3 +99,7 @@ type TaskDetailResponse struct {
 	Links           []string   `json:"links"`
 	Assignees       []Assignee `json:"assignees"`
 }
+
+type LogTimePayload struct {
+	Hours float64 `json:"hours"`
+}

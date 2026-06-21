@@ -9,9 +9,6 @@ import (
 	"github.com/kyzercmd/cadence/internal/models"
 )
 
-var ErrProjectNotFound = errors.New("Project not found")
-var ErrTaskNotFound = errors.New("Task not found")
-
 type TaskRepository interface {
 	GetTaskByUserID(ctx context.Context, userID string) ([]*models.MyTaskResponse, error)
 	CreateTaskWithAssignees(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error)
@@ -19,6 +16,7 @@ type TaskRepository interface {
 	UpdateTask(ctx context.Context, taskID string, payload *models.UpdateTaskPayload) error
 	GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error)
 	GetTaskByID(ctx context.Context, taskID string) (*models.TaskDetailResponse, error)
+	LogTime(ctx context.Context, taskID string, userID string, payload *models.LogTimePayload) error
 }
 
 type postgresTaskRepositoy struct {
@@ -125,7 +123,7 @@ func (r *postgresTaskRepositoy) UpdateTaskStatus(ctx context.Context, status mod
 		return err
 	}
 	if rowsAffected == 0 {
-		return ErrTaskNotFound
+		return models.ErrTaskNotFound
 	}
 	return nil
 }
@@ -146,7 +144,7 @@ func (r *postgresTaskRepositoy) UpdateTask(ctx context.Context, taskID string, p
 		return err
 	}
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		return ErrTaskNotFound
+		return models.ErrTaskNotFound
 	}
 
 	deleteQuery := `
@@ -235,7 +233,7 @@ func (r *postgresTaskRepositoy) GetTaskByID(ctx context.Context, taskID string) 
 	err := r.db.QueryRowContext(ctx, query, taskID).Scan(&task.ID, &task.ProjectID, &task.Name, &task.Description, &task.Status, &task.Priority, &task.EstimateHours, &task.DueDate, &task.Attachments, &task.Links, &task.TotalSpentHours, &assigneesJSON)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrTaskNotFound
+			return nil, models.ErrTaskNotFound
 		}
 		return nil, err
 	}
@@ -245,4 +243,20 @@ func (r *postgresTaskRepositoy) GetTaskByID(ctx context.Context, taskID string) 
 	}
 
 	return task, nil
+}
+
+func (r *postgresTaskRepositoy) LogTime(ctx context.Context, taskID string, userID string, payload *models.LogTimePayload) error {
+	query := `
+			UPDATE task_assignees SET spent_hours = spent_hours + $1 
+			WHERE task_id = $2 AND user_id = $3
+			`
+	result, err := r.db.ExecContext(ctx, query, payload.Hours, taskID, userID)
+	if err != nil {
+		return err
+	}
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return models.ErrUserNotAssigned
+	}
+
+	return nil
 }

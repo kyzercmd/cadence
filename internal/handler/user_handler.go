@@ -7,7 +7,6 @@ import (
 
 	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/kyzercmd/cadence/internal/models"
-	"github.com/kyzercmd/cadence/internal/repository"
 	"github.com/kyzercmd/cadence/internal/service"
 )
 
@@ -213,7 +212,7 @@ func (h *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDkey).(string)
 	user, err := h.userService.GetUserProfile(r.Context(), userID)
 	if err != nil {
-		if errors.Is(err, repository.ErrUserNotFound) {
+		if errors.Is(err, models.ErrUserNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
@@ -229,7 +228,7 @@ func (h *UserHandler) GetEmployee(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userService.GetUserProfile(r.Context(), userID)
 	if err != nil {
-		if errors.Is(err, repository.ErrUserNotFound) {
+		if errors.Is(err, models.ErrUserNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}

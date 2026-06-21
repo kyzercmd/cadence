@@ -14,6 +14,7 @@ type TaskService interface {
 	UpdateTask(ctx context.Context, taskID string, payload *models.UpdateTaskPayload) error
 	GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error)
 	GetTaskByID(ctx context.Context, taskID string) (*models.TaskDetailResponse, error)
+	LogTime(ctx context.Context, taskID string, userID string, payload *models.LogTimePayload) error
 }
 
 type taskService struct {
@@ -56,4 +57,15 @@ func (s *taskService) GetTasksByProjectID(ctx context.Context, projectID string)
 
 func (s *taskService) GetTaskByID(ctx context.Context, taskID string) (*models.TaskDetailResponse, error) {
 	return s.repo.GetTaskByID(ctx, taskID)
+}
+
+func (s *taskService) LogTime(ctx context.Context, taskID string, userID string, payload *models.LogTimePayload) error {
+	if payload.Hours <= 0 {
+		return models.ErrHoursLessThanZero
+	}
+	err := s.repo.LogTime(ctx, taskID, userID, payload)
+	if err != nil {
+		return err
+	}
+	return nil
 }
