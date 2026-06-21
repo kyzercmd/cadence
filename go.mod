@@ -11,6 +11,7 @@ require (
 require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/justinas/alice v1.2.0
+	github.com/rs/cors v1.11.1
 )
 
 require (

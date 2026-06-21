@@ -6,6 +6,7 @@ import (
 	"github.com/justinas/alice"
 	"github.com/kyzercmd/cadence/internal/handler"
 	"github.com/kyzercmd/cadence/internal/middleware"
+	"github.com/rs/cors"
 )
 
 type Handlers struct {
@@ -18,13 +19,23 @@ type Middlewares struct {
 	Auth *middleware.AuthMiddleware
 }
 
-func SetupRoutes(h Handlers, m Middlewares) *http.ServeMux {
+func SetupRoutes(h Handlers, m Middlewares) http.Handler {
 	mux := http.NewServeMux()
 
 	mapAuthRoutes(mux, h, m)
 	mapUserRoutes(mux, h, m)
 
-	return mux
+	c := cors.New(cors.Options{
+		AllowOriginFunc:  func(origin string) bool { return true },
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		Debug:            true,
+	})
+
+	handler := c.Handler(mux)
+
+	return handler
 }
 
 func mapAuthRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
