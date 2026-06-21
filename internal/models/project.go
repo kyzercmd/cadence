@@ -68,3 +68,19 @@ type UpdateTaskPayload struct {
 	Attachments   []string   `json:"attachments"`
 	Links         []string   `json:"links"`
 }
+
+type Assignee struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type BoardTaskResponse struct {
+	ID              string     `json:"id"`
+	Name            string     `json:"name"`
+	Status          TaskStatus `json:"status"`
+	Priority        Priority   `json:"priority"`
+	EstimateHours   float64    `json:"estimateHours"`
+	TotalSpentHours float64    `json:"totalSpentHours"`
+	DueDate         *string    `json:"dueDate"`
+	Assignee        []Assignee `json:"assignees"`
+}

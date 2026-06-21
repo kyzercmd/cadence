@@ -12,6 +12,7 @@ type TaskService interface {
 	CreateTask(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error)
 	UpdateTaskStatus(ctx context.Context, status models.TaskStatus, taskID string) error
 	UpdateTask(ctx context.Context, taskID string, payload *models.UpdateTaskPayload) error
+	GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error)
 }
 
 type taskService struct {
@@ -46,4 +47,8 @@ func (s *taskService) UpdateTaskStatus(ctx context.Context, status models.TaskSt
 
 func (s *taskService) UpdateTask(ctx context.Context, taskID string, payload *models.UpdateTaskPayload) error {
 	return s.repo.UpdateTask(ctx, taskID, payload)
+}
+
+func (s *taskService) GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error) {
+	return s.repo.GetTasksByProjectID(ctx, projectID)
 }

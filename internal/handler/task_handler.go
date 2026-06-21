@@ -33,7 +33,7 @@ func (h *TaskHandler) GetMyTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
-	projectID := r.PathValue("id")
+	projectID := r.PathValue("projectid")
 
 	var payload models.CreateTaskPayload
 	err := json.NewDecoder(r.Body).Decode(&payload)
@@ -60,7 +60,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
-	taskID := r.PathValue("id")
+	taskID := r.PathValue("taskid")
 
 	var payload models.UpdateTaskStatusPayload
 
@@ -95,7 +95,7 @@ func (h *TaskHandler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
-	taskID := r.PathValue("id")
+	taskID := r.PathValue("taskid")
 
 	var payload models.UpdateTaskPayload
 
@@ -127,4 +127,18 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(response)
+}
+
+func (h *TaskHandler) GetProjectTasks(w http.ResponseWriter, r *http.Request) {
+	projectID := r.PathValue("projectid")
+
+	tasks, err := h.taskService.GetTasksByProjectID(r.Context(), projectID)
+	if err != nil {
+		http.Error(w, "Failed to fetch project tasks", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(tasks)
 }

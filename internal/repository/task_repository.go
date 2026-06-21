@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 
 	"github.com/kyzercmd/cadence/internal/models"
@@ -16,6 +17,7 @@ type TaskRepository interface {
 	CreateTaskWithAssignees(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error)
 	UpdateTaskStatus(ctx context.Context, status models.TaskStatus, taskID string) error
 	UpdateTask(ctx context.Context, taskID string, payload *models.UpdateTaskPayload) error
+	GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error)
 }
 
 type postgresTaskRepositoy struct {
@@ -172,4 +174,46 @@ func (r *postgresTaskRepositoy) UpdateTask(ctx context.Context, taskID string, p
 	}
 
 	return nil
+}
+
+func (r *postgresTaskRepositoy) GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error) {
+	query := `
+			SELECT t.id, t.name, t.status, t.priority, t.estimate_hours, t.due_date, COALESCE(SUM(ta.spent_hours), 0) AS total_spent_hours,
+			COALESCE(json_agg(json_build_object('id', u.id, 'name', u.name))
+			FILTER (WHERE u.id IS NOT NULL), '[]') AS assignees
+			FROM tasks t
+			LEFT JOIN task_assignees ta ON t.id = ta.task_id
+			LEFT JOIN users u ON ta.user_id = u.id
+			WHERE t.project_id = $1
+			GROUP BY t.id
+			`
+	rows, err := r.db.QueryContext(ctx, query, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tasks := make([]*models.BoardTaskResponse, 0)
+
+	for rows.Next() {
+		task := &models.BoardTaskResponse{}
+		var assigneesJSON []byte
+
+		err := rows.Scan(&task.ID, &task.Name, &task.Status, &task.Priority, &task.EstimateHours, &task.DueDate, &task.TotalSpentHours, &assigneesJSON)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal(assigneesJSON, &task.Assignee); err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, task)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tasks, err
 }
