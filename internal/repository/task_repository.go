@@ -18,6 +18,7 @@ type TaskRepository interface {
 	UpdateTaskStatus(ctx context.Context, status models.TaskStatus, taskID string) error
 	UpdateTask(ctx context.Context, taskID string, payload *models.UpdateTaskPayload) error
 	GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error)
+	GetTaskByID(ctx context.Context, taskID string) (*models.TaskDetailResponse, error)
 }
 
 type postgresTaskRepositoy struct {
@@ -216,4 +217,32 @@ func (r *postgresTaskRepositoy) GetTasksByProjectID(ctx context.Context, project
 	}
 
 	return tasks, err
+}
+
+func (r *postgresTaskRepositoy) GetTaskByID(ctx context.Context, taskID string) (*models.TaskDetailResponse, error) {
+	query := `
+			SELECT t.id, t.project_id, t.name, t.description, t.status, t.priority, t.estimate_hours, t.due_date, t.attachments, t.links, COALESCE(SUM(ta.spent_hours), 0) AS total_spent_hours,
+			COALESCE(json_agg(json_build_object('id', u.id, 'name', u.name)) FILTER (WHERE u.id IS NOT NULL), '[]') AS  assignees
+			FROM tasks t
+			LEFT JOIN task_assignees ta ON t.id = ta.task_id
+			LEFT JOIN users u ON ta.user_id = u.id
+			WHERE t.id = $1
+			GROUP BY t.id
+			`
+	task := &models.TaskDetailResponse{}
+	var assigneesJSON []byte
+
+	err := r.db.QueryRowContext(ctx, query, taskID).Scan(&task.ID, &task.ProjectID, &task.Name, &task.Description, &task.Status, &task.Priority, &task.EstimateHours, &task.DueDate, &task.Attachments, &task.Links, &task.TotalSpentHours, &assigneesJSON)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrTaskNotFound
+		}
+		return nil, err
+	}
+
+	if err := json.Unmarshal(assigneesJSON, &task.Assignees); err != nil {
+		return nil, err
+	}
+
+	return task, nil
 }

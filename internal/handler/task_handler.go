@@ -142,3 +142,21 @@ func (h *TaskHandler) GetProjectTasks(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(tasks)
 }
+
+func (h *TaskHandler) GetTaskDetails(w http.ResponseWriter, r *http.Request) {
+	taskID := r.PathValue("taskid")
+
+	task, err := h.taskService.GetTaskByID(r.Context(), taskID)
+	if err != nil {
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to fetch task details", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(task)
+}

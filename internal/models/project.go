@@ -84,3 +84,18 @@ type BoardTaskResponse struct {
 	DueDate         *string    `json:"dueDate"`
 	Assignee        []Assignee `json:"assignees"`
 }
+
+type TaskDetailResponse struct {
+	ID              string     `json:"id"`
+	ProjectID       string     `json:"projectId"`
+	Name            string     `json:"name"`
+	Description     *string    `json:"description"`
+	Status          TaskStatus `json:"status"`
+	Priority        Priority   `json:"priority"`
+	EstimateHours   float64    `json:"estimateHours"`
+	TotalSpentHours float64    `json:"totalSpentHours"`
+	DueDate         *string    `json:"dueDate"`
+	Attachments     []string   `json:"attachments"`
+	Links           []string   `json:"links"`
+	Assignees       []Assignee `json:"assignees"`
+}
