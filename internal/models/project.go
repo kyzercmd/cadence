@@ -9,7 +9,6 @@ type Project struct {
 	Description string     `json:"description"`
 	Status      string     `json:"status"`
 	Priority    Priority   `json:"priority"`
-	LeadID      string     `json:"leadId"`
 	MemberIDs   []string   `json:"memberIds"`
 	CreatedAt   time.Time  `json:"createdAt"`
 	StartDate   *time.Time `json:"startDate,omitempty"`

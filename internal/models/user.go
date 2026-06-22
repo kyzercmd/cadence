@@ -40,3 +40,14 @@ type UserUpdatePayload struct {
 	Skype     *string
 	Active    *bool
 }
+
+type UserListResponse struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatarUrl"`
+	Role      Role   `json:"role"`
+	Position  string `json:"position"`
+	Level     Level  `json:"level"`
+	Active    bool   `json:"active"`
+}

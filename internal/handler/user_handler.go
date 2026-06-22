@@ -240,3 +240,15 @@ func (h *UserHandler) GetEmployee(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(user)
 }
+
+func (h *UserHandler) GetAllEmployee(w http.ResponseWriter, r *http.Request) {
+	users, err := h.userService.GetAllEmployees(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to fetch employees", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(users)
+}

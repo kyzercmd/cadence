@@ -13,6 +13,7 @@ type UserRepository interface {
 	GetUserByID(ctx context.Context, ID string) (*models.User, error)
 	CreateUser(ctx context.Context, user *models.User) error
 	UpdateUser(ctx context.Context, user *models.User) error
+	GetAllUsers(ctx context.Context) ([]*models.UserListResponse, error)
 }
 
 type postgresUserRepository struct {
@@ -98,4 +99,35 @@ func (r *postgresUserRepository) UpdateUser(ctx context.Context, user *models.Us
 	}
 
 	return nil
+}
+
+func (r *postgresUserRepository) GetAllUsers(ctx context.Context) ([]*models.UserListResponse, error) {
+	query := `
+		SELECT id, name, email, avatar_url, role, position, level, active 
+		FROM USERS ORDER BY role ASC, name ASC
+		`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := make([]*models.UserListResponse, 0)
+
+	for rows.Next() {
+		var u models.UserListResponse
+
+		err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.AvatarURL, &u.Role, &u.Position, &u.Level, &u.Active)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, &u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

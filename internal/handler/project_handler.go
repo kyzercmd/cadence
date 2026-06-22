@@ -38,7 +38,7 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
-		http.Error(w, "Failed to create task", http.StatusInternalServerError)
+		http.Error(w, "Failed to create project", http.StatusInternalServerError)
 		return
 	}
 
@@ -55,14 +55,14 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 	userID, okID := r.Context().Value(middleware.UserIDkey).(string)
-	userRole, okRole := r.Context().Value(middleware.UserRoleKey).(string)
+	userRole, okRole := r.Context().Value(middleware.UserRoleKey).(models.Role)
 
 	if !okID || !okRole || userID == "" || userRole == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	projects, err := h.ProjectService.GetProjects(r.Context(), userID, models.Role(userRole))
+	projects, err := h.ProjectService.GetProjects(r.Context(), userID, userRole)
 	if err != nil {
 		http.Error(w, "Failed to fetch projects", http.StatusInternalServerError)
 		return

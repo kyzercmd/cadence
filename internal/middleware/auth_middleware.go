@@ -53,8 +53,17 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		userID := claims["sub"].(string)
-		userRole := claims["role"].(string)
+		userID, ok := claims["sub"].(string)
+		if !ok {
+			http.Error(w, "Unauthorized: Invalid userID claim", http.StatusUnauthorized)
+			return
+		}
+
+		userRole, ok := claims["role"].(string)
+		if !ok {
+			http.Error(w, "Unauthorized: Invalid role claim", http.StatusUnauthorized)
+			return
+		}
 
 		ctx := context.WithValue(r.Context(), UserIDkey, userID)
 		ctx = context.WithValue(ctx, UserRoleKey, models.Role(userRole))

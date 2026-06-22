@@ -14,6 +14,7 @@ type UserService interface {
 	HRUpdateEmployee(ctx context.Context, targetUserID string, payload *models.UserUpdatePayload) (*models.User, error)
 	AdminUpdateEmployee(ctx context.Context, targetUserID string, payload *models.UserUpdatePayload) (*models.User, error)
 	GetUserProfile(ctx context.Context, userID string) (*models.User, error)
+	GetAllEmployees(ctx context.Context) ([]*models.UserListResponse, error)
 }
 
 type userService struct {
@@ -179,4 +180,8 @@ func (s *userService) GetUserProfile(ctx context.Context, userID string) (*model
 		return nil, err
 	}
 	return user, nil
+}
+
+func (s *userService) GetAllEmployees(ctx context.Context) ([]*models.UserListResponse, error) {
+	return s.repo.GetAllUsers(ctx)
 }
