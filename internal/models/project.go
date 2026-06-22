@@ -103,3 +103,14 @@ type TaskDetailResponse struct {
 type LogTimePayload struct {
 	Hours float64 `json:"hours"`
 }
+
+type CreateProjectPayload struct {
+	Code        string   `json:"code"` // PN0001245
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Priority    Priority `json:"priority"`
+	StartDate   *string  `json:"startDate,omitempty"`
+	Deadline    *string  `json:"deadline,omitempty"`
+	ImageURL    *string  `json:"imageUrl,omitempty"`
+	MemberIDs   []string `json:"memberIds"`
+}

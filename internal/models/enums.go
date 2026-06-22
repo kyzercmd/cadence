@@ -40,6 +40,13 @@ const (
 	PriorityHigh   Priority = "high"
 )
 
+type ProjectStatus string
+
+const (
+	ProjectStatusActive    ProjectStatus = "active"
+	ProjectStatusCompleted ProjectStatus = "completed"
+)
+
 type LeaveType string
 
 const (

@@ -10,9 +10,10 @@ import (
 )
 
 type Handlers struct {
-	Auth *handler.AuthHandler
-	User *handler.UserHandler
-	Task *handler.TaskHandler
+	Auth    *handler.AuthHandler
+	User    *handler.UserHandler
+	Task    *handler.TaskHandler
+	Project *handler.ProjectHandler
 }
 
 type Middlewares struct {
@@ -50,6 +51,7 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 
 	mux.Handle("POST /api/admin/employee", AdminChain.ThenFunc(h.User.CreateEmployee))
 	mux.Handle("POST /api/projects/{projectid}/tasks", protectedChain.ThenFunc(h.Task.CreateTask))
+	mux.Handle("POST /api/projects", HRChain.ThenFunc(h.Project.CreateProject))
 
 	mux.Handle("PATCH /api/users/me", protectedChain.ThenFunc(h.User.UpdateSelf))
 	mux.Handle("PATCH /api/users/{id}", HRChain.ThenFunc(h.User.HRUpdateEmployee))

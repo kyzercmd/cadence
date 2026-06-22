@@ -78,7 +78,7 @@ func RequireRole(allowedRoles ...models.Role) func(http.Handler) http.Handler {
 			}
 
 			if !authorized {
-				http.Error(w, "Forbidden: Not enough privileges", http.StatusForbidden)
+				http.Error(w, models.ErrInsufficientPermissions.Error(), http.StatusForbidden)
 				return
 			}
 
