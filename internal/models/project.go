@@ -114,3 +114,17 @@ type CreateProjectPayload struct {
 	ImageURL    *string  `json:"imageUrl,omitempty"`
 	MemberIDs   []string `json:"memberIds"`
 }
+
+type GetProjectResponse struct {
+	ID          string        `json:"id"`
+	Code        string        `json:"code"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Status      ProjectStatus `json:"status"`
+	Priority    Priority      `json:"priority"`
+	MemberIDs   []string      `json:"memberIds"`
+	CreatedAt   string        `json:"createdAt"`
+	StartDate   *string       `json:"startDate,omitempty"`
+	Deadline    *string       `json:"deadline,omitempty"`
+	ImageURL    *string       `json:"imageUrl,omitempty"`
+}

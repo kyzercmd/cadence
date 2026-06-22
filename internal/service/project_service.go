@@ -9,6 +9,7 @@ import (
 
 type ProjectService interface {
 	CreateProject(ctx context.Context, payload *models.CreateProjectPayload) (string, error)
+	GetProjects(ctx context.Context, userID string, userRole models.Role) ([]*models.GetProjectResponse, error)
 }
 
 type projectService struct {
@@ -21,4 +22,17 @@ func NewProjectService(repo repository.ProjectRepository) ProjectService {
 
 func (s *projectService) CreateProject(ctx context.Context, payload *models.CreateProjectPayload) (string, error) {
 	return s.repo.CreateProject(ctx, payload)
+}
+
+func (s *projectService) GetProjects(ctx context.Context, userID string, userRole models.Role) ([]*models.GetProjectResponse, error) {
+	if userRole == models.RoleAdmin || userRole == models.RoleHR {
+		projects, err := s.repo.GetAllProjects(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return projects, err
+	}
+
+	return s.repo.GetProjectByID(ctx, userID)
+
 }

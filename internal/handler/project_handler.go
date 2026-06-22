@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/kyzercmd/cadence/internal/models"
 	"github.com/kyzercmd/cadence/internal/service"
 )
@@ -50,4 +51,24 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	json.NewEncoder(w).Encode(response)
+}
+
+func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
+	userID, okID := r.Context().Value(middleware.UserIDkey).(string)
+	userRole, okRole := r.Context().Value(middleware.UserRoleKey).(string)
+
+	if !okID || !okRole || userID == "" || userRole == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	projects, err := h.ProjectService.GetProjects(r.Context(), userID, models.Role(userRole))
+	if err != nil {
+		http.Error(w, "Failed to fetch projects", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(projects)
 }
