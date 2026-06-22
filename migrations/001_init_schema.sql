@@ -33,7 +33,6 @@ CREATE TABLE projects (
     description TEXT NOT NULL,
     status project_status NOT NULL DEFAULT 'active',
     priority priority_type NOT NULL,
-    lead_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     start_date DATE,
     deadline DATE,

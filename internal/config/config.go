@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
@@ -29,6 +30,10 @@ func LoadConfig() *Config {
 	if err != nil {
 		log.Fatal("Failed to open database %w", err)
 	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(15 * time.Minute)
 
 	if err = db.Ping(); err != nil {
 		log.Fatal("Failed to ping database %w", err)
