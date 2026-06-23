@@ -21,3 +21,9 @@ var (
 	ErrHoursLessThanZero = errors.New("Logged hour must be greater than zero")
 	ErrProjectCodeExists = errors.New("A project with this code already exists")
 )
+
+var (
+	ErrAlreadyClockedIn  = errors.New("You have already clocked in for today")
+	ErrHaveNotClockedIn  = errors.New("You have not clocked in for today")
+	ErrAlreadyClockedOut = errors.New("You have already clocked out for today")
+)
