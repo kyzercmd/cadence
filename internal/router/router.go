@@ -10,10 +10,11 @@ import (
 )
 
 type Handlers struct {
-	Auth    *handler.AuthHandler
-	User    *handler.UserHandler
-	Task    *handler.TaskHandler
-	Project *handler.ProjectHandler
+	Auth       *handler.AuthHandler
+	User       *handler.UserHandler
+	Task       *handler.TaskHandler
+	Project    *handler.ProjectHandler
+	Attendance *handler.AttendanceHandler
 }
 
 type Middlewares struct {
@@ -52,6 +53,8 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("POST /api/admin/employee", AdminChain.ThenFunc(h.User.CreateEmployee))
 	mux.Handle("POST /api/projects/{projectid}/tasks", protectedChain.ThenFunc(h.Task.CreateTask))
 	mux.Handle("POST /api/projects", HRChain.ThenFunc(h.Project.CreateProject))
+	mux.Handle("POST /api/attendance/clock-in", protectedChain.ThenFunc(h.Attendance.ClockIn))
+	mux.Handle("POST /api/attendance/clock-out", protectedChain.ThenFunc(h.Attendance.ClockOut))
 
 	mux.Handle("PATCH /api/users/me", protectedChain.ThenFunc(h.User.UpdateSelf))
 	mux.Handle("PATCH /api/users/{id}", HRChain.ThenFunc(h.User.HRUpdateEmployee))
@@ -68,5 +71,9 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("GET /api/projects/{projectid}/tasks", protectedChain.ThenFunc(h.Task.GetProjectTasks))
 	mux.Handle("GET /api/tasks/{taskid}", protectedChain.ThenFunc(h.Task.GetTaskDetails))
 	mux.Handle("GET /api/projects", protectedChain.ThenFunc(h.Project.GetProjects))
+	mux.Handle("GET /api/attendance/me", protectedChain.ThenFunc(h.Attendance.GetTodayAttendance))
+	mux.Handle("GET /api/attendance/history", protectedChain.ThenFunc(h.Attendance.GetMyHistory))
+	mux.Handle("GET /api/attendance/employees", HRChain.ThenFunc(h.Attendance.GetAllEmployeesAttendance))
+	mux.Handle("GET /api/attendance/{targetid}/history", HRChain.ThenFunc(h.Attendance.GetEmployeeHistory))
 
 }

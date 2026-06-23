@@ -11,6 +11,8 @@ type AttendanceService interface {
 	ClockIn(ctx context.Context, userID string) (*models.AttendanceEntry, error)
 	ClockOut(ctx context.Context, userID string) (*models.AttendanceEntry, error)
 	GetTodayAttendance(ctx context.Context, userID string) (*models.AttendanceEntry, error)
+	GetAttendanceHistory(ctx context.Context, userID string, limit int) ([]*models.AttendanceEntry, error)
+	GetAllEmployeesAttendance(ctx context.Context) ([]*models.EmployeeLatestAttendance, error)
 }
 
 type attendanceService struct {
@@ -31,4 +33,12 @@ func (s *attendanceService) ClockOut(ctx context.Context, userID string) (*model
 
 func (s *attendanceService) GetTodayAttendance(ctx context.Context, userID string) (*models.AttendanceEntry, error) {
 	return s.repo.GetTodayAttendance(ctx, userID)
+}
+
+func (s *attendanceService) GetAttendanceHistory(ctx context.Context, userID string, limit int) ([]*models.AttendanceEntry, error) {
+	return s.repo.GetAttendanceHistory(ctx, userID, limit)
+}
+
+func (s *attendanceService) GetAllEmployeesAttendance(ctx context.Context) ([]*models.EmployeeLatestAttendance, error) {
+	return s.repo.GetAllEmployeesAttendance(ctx)
 }

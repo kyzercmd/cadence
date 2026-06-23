@@ -23,3 +23,13 @@ type LeaveRequest struct {
 	ReviewerComment *string     `json:"reviewerComment,omitempty"`
 	CreatedAt       time.Time   `json:"createdAt"`
 }
+
+type EmployeeLatestAttendance struct {
+	UserID       string     `json:"userId"`
+	Name         string     `json:"name"`
+	AvatarURL    string     `json:"avatar_url"`
+	Role         Role       `json:"role"`
+	Position     string     `json:"position"`
+	LastDate     *time.Time `json:"lastUpdate,omitempty"`
+	TotalMinutes *int64     `json:"totalMinutes,omitempty"`
+}

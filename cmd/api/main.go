@@ -21,11 +21,13 @@ func main() {
 	userRepo := repository.NewUserRepository(cfg.DB)
 	taskRepo := repository.NewTaskRepository(cfg.DB)
 	projectRepo := repository.NewProjectRepository(cfg.DB)
+	attendanceRepo := repository.NewAttendanceRepository(cfg.DB)
 
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	userService := service.NewUserService(userRepo)
 	taskService := service.NewTaskService(taskRepo)
 	projectService := service.NewProjectService(projectRepo)
+	attendanceService := service.NewAttendanceService(attendanceRepo)
 
 	err := authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
 	if err != nil {
@@ -33,10 +35,11 @@ func main() {
 	}
 
 	appHandlers := router.Handlers{
-		Auth:    handler.NewAuthHandler(authService),
-		User:    handler.NewUserHandler(userService),
-		Task:    handler.NewTaskHandler(taskService),
-		Project: handler.NewProjectHandler(projectService),
+		Auth:       handler.NewAuthHandler(authService),
+		User:       handler.NewUserHandler(userService),
+		Task:       handler.NewTaskHandler(taskService),
+		Project:    handler.NewProjectHandler(projectService),
+		Attendance: handler.NewAttendanceHandler(attendanceService),
 	}
 
 	appMws := router.Middlewares{
