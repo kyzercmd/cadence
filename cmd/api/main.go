@@ -14,6 +14,20 @@ import (
 	"github.com/kyzercmd/cadence/internal/service"
 )
 
+// @title           HRMS API
+// @version         1.0
+// @description     This is the core backend API.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.email  support@example.com
+
+// @host      localhost:4000
+// @BasePath  /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	cfg := config.LoadConfig()
 	defer cfg.DB.Close()

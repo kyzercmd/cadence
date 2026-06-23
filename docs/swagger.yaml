@@ -1,0 +1,1292 @@
+basePath: /api
+definitions:
+  models.Assignee:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.AttendanceEntry:
+    properties:
+      clockIn:
+        type: string
+      clockOut:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      totalMinutes:
+        type: integer
+      userId:
+        type: string
+    type: object
+  models.AuthSession:
+    properties:
+      refreshToken:
+        type: string
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.BoardTaskResponse:
+    properties:
+      assignees:
+        items:
+          $ref: '#/definitions/models.Assignee'
+        type: array
+      dueDate:
+        type: string
+      estimateHours:
+        type: number
+      id:
+        type: string
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/models.Priority'
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+      totalSpentHours:
+        type: number
+    type: object
+  models.CreateProjectPayload:
+    properties:
+      code:
+        type: string
+      deadline:
+        type: string
+      description:
+        type: string
+      imageUrl:
+        type: string
+      memberIds:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/models.Priority'
+      startDate:
+        type: string
+    type: object
+  models.CreateTaskPayload:
+    properties:
+      assigneeIds:
+        items:
+          type: string
+        type: array
+      attachments:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      dueDate:
+        type: string
+      estimateHours:
+        type: number
+      links:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/models.Priority'
+    type: object
+  models.CreateUserPayload:
+    properties:
+      avatarUrl:
+        type: string
+      birthday:
+        type: string
+      company:
+        type: string
+      email:
+        type: string
+      gender:
+        type: string
+      level:
+        type: string
+      location:
+        type: string
+      mobile:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      position:
+        type: string
+      role:
+        type: string
+      skype:
+        type: string
+    type: object
+  models.EmployeeLatestAttendance:
+    properties:
+      avatar_url:
+        type: string
+      lastUpdate:
+        type: string
+      name:
+        type: string
+      position:
+        type: string
+      role:
+        $ref: '#/definitions/models.Role'
+      totalMinutes:
+        type: integer
+      userId:
+        type: string
+    type: object
+  models.Gender:
+    enum:
+    - Male
+    - Female
+    type: string
+    x-enum-varnames:
+    - GenderMale
+    - GenderFemale
+  models.GetProjectResponse:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      deadline:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      imageUrl:
+        type: string
+      memberIds:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/models.Priority'
+      startDate:
+        type: string
+      status:
+        $ref: '#/definitions/models.ProjectStatus'
+    type: object
+  models.HRUpdateEmployeePayload:
+    properties:
+      active:
+        type: boolean
+      avatarUrl:
+        type: string
+      birthday:
+        type: string
+      company:
+        type: string
+      gender:
+        $ref: '#/definitions/models.Gender'
+      level:
+        $ref: '#/definitions/models.Level'
+      location:
+        type: string
+      mobile:
+        type: string
+      name:
+        type: string
+      skype:
+        type: string
+    type: object
+  models.Level:
+    enum:
+    - Junior
+    - Middle
+    - Senior
+    type: string
+    x-enum-varnames:
+    - LevelJunior
+    - LevelMiddle
+    - LevelSenior
+  models.LogTimePayload:
+    properties:
+      hours:
+        type: number
+    type: object
+  models.LoginPayload:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  models.MyTaskResponse:
+    properties:
+      dueDate:
+        type: string
+      id:
+        type: string
+      priority:
+        $ref: '#/definitions/models.Priority'
+      projectName:
+        type: string
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+      taskName:
+        type: string
+    type: object
+  models.Priority:
+    enum:
+    - low
+    - medium
+    - high
+    type: string
+    x-enum-varnames:
+    - PriorityLow
+    - PriorityMedium
+    - PriorityHigh
+  models.ProjectStatus:
+    enum:
+    - active
+    - completed
+    type: string
+    x-enum-varnames:
+    - ProjectStatusActive
+    - ProjectStatusCompleted
+  models.RefreshPayload:
+    properties:
+      refreshtoken:
+        type: string
+    type: object
+  models.Role:
+    enum:
+    - admin
+    - HR
+    - employee
+    type: string
+    x-enum-varnames:
+    - RoleAdmin
+    - RoleHR
+    - RoleEmployee
+  models.TaskDetailResponse:
+    properties:
+      assignees:
+        items:
+          $ref: '#/definitions/models.Assignee'
+        type: array
+      attachments:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      dueDate:
+        type: string
+      estimateHours:
+        type: number
+      id:
+        type: string
+      links:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/models.Priority'
+      projectId:
+        type: string
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+      totalSpentHours:
+        type: number
+    type: object
+  models.TaskStatus:
+    enum:
+    - todo
+    - in_progress
+    - in_review
+    - done
+    type: string
+    x-enum-varnames:
+    - TaskStatusTodo
+    - TaskStatusInProgress
+    - TaskStatusInReview
+    - TaskStatusDone
+  models.UpdateSelfPayload:
+    properties:
+      avatarURL:
+        type: string
+      location:
+        type: string
+      mobile:
+        type: string
+      skype:
+        type: string
+    type: object
+  models.UpdateTaskPayload:
+    properties:
+      assigneeIds:
+        items:
+          type: string
+        type: array
+      attachments:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      dueDate:
+        type: string
+      estimateHours:
+        type: number
+      links:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/models.Priority'
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+    type: object
+  models.UpdateTaskStatusPayload:
+    properties:
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+    type: object
+  models.User:
+    properties:
+      active:
+        type: boolean
+      avatarUrl:
+        type: string
+      birthday:
+        type: string
+      company:
+        type: string
+      email:
+        type: string
+      gender:
+        $ref: '#/definitions/models.Gender'
+      id:
+        type: string
+      level:
+        $ref: '#/definitions/models.Level'
+      location:
+        type: string
+      mobile:
+        type: string
+      name:
+        type: string
+      position:
+        type: string
+      role:
+        $ref: '#/definitions/models.Role'
+      skype:
+        type: string
+    type: object
+  models.UserListResponse:
+    properties:
+      active:
+        type: boolean
+      avatarUrl:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      level:
+        $ref: '#/definitions/models.Level'
+      name:
+        type: string
+      position:
+        type: string
+      role:
+        $ref: '#/definitions/models.Role'
+    type: object
+  models.UserUpdatePayload:
+    properties:
+      active:
+        type: boolean
+      avatarUrl:
+        type: string
+      birthday:
+        type: string
+      company:
+        type: string
+      email:
+        type: string
+      gender:
+        $ref: '#/definitions/models.Gender'
+      level:
+        $ref: '#/definitions/models.Level'
+      location:
+        type: string
+      mobile:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      position:
+        type: string
+      role:
+        $ref: '#/definitions/models.Role'
+      skype:
+        type: string
+    type: object
+host: localhost:4000
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: This is the core backend API.
+  termsOfService: http://swagger.io/terms/
+  title: HRMS API
+  version: "1.0"
+paths:
+  /admin/employee:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new employee record in the system. Requires Admin privileges.
+      parameters:
+      - description: Employee creation payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateUserPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created employee
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "405":
+          description: Method not allowed
+          schema:
+            type: string
+        "500":
+          description: Failed to create Employee
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create a new employee
+      tags:
+      - Users
+  /admin/users/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Allows Admins to update all employee details including Role, Email,
+        Position, and Password.
+      parameters:
+      - description: Employee User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Employee update fields
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserUpdatePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated user profile
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update employee
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update employee (Admin)
+      tags:
+      - Users
+  /attendance/{targetid}/history:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the attendance history for a specific employee by ID. Requires
+        HR or Admin privileges.
+      parameters:
+      - description: Employee User ID
+        in: path
+        name: targetid
+        required: true
+        type: string
+      - description: Number of records to return (defaults to 30)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of attendance entries
+          schema:
+            items:
+              $ref: '#/definitions/models.AttendanceEntry'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Failed to get employee history
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get an employee's attendance history
+      tags:
+      - Attendance
+  /attendance/clock-in:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new attendance entry for the logged-in employee for today's
+        date.
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully clocked in
+          schema:
+            $ref: '#/definitions/models.AttendanceEntry'
+        "400":
+          description: You have already clocked in for today
+          schema:
+            type: string
+        "500":
+          description: Failed to clock in
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Clock in for the day
+      tags:
+      - Attendance
+  /attendance/clock-out:
+    post:
+      consumes:
+      - application/json
+      description: Updates today's attendance entry with a clock-out time and automatically
+        calculates total minutes worked.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully clocked out
+          schema:
+            $ref: '#/definitions/models.AttendanceEntry'
+        "400":
+          description: You have not clocked in for today OR You have already clocked
+            out for today
+          schema:
+            type: string
+        "500":
+          description: Failed to clock out
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Clock out for the day
+      tags:
+      - Attendance
+  /attendance/employees:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a list of all active employees along with their most recent
+        clock-in data. Requires HR or Admin privileges.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of employees with latest attendance
+          schema:
+            items:
+              $ref: '#/definitions/models.EmployeeLatestAttendance'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Failed to fetch employees attendance
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get latest attendance for all employees
+      tags:
+      - Attendance
+  /attendance/history:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the attendance history for the logged-in user, sorted by
+        date descending.
+      parameters:
+      - description: Number of records to return (defaults to 30)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of attendance entries
+          schema:
+            items:
+              $ref: '#/definitions/models.AttendanceEntry'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Failed to fetch attendance history
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get personal attendance history
+      tags:
+      - Attendance
+  /attendance/me:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the attendance entry for the logged-in user for the current
+        date. Will return null if the user hasn't clocked in yet.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Today's attendance entry (or null)
+          schema:
+            $ref: '#/definitions/models.AttendanceEntry'
+        "500":
+          description: Failed to get Today's attendance
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get today's attendance status
+      tags:
+      - Attendance
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user using email and password, returning an auth
+        session.
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully authenticated
+          schema:
+            $ref: '#/definitions/models.AuthSession'
+        "400":
+          description: Invalid request payload
+          schema:
+            type: string
+        "401":
+          description: User account is deactivated
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Log in to the system
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Obtains a new JWT token using a valid refresh token.
+      parameters:
+      - description: Refresh Token Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.RefreshPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully refreshed session
+          schema:
+            $ref: '#/definitions/models.AuthSession'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "401":
+          description: 'Unauthorized: Invalid or expired refresh token'
+          schema:
+            type: string
+      summary: Refresh authentication session
+      tags:
+      - Auth
+  /projects:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a list of projects. Employees will see projects they are
+        members of, while HR/Admins may see all projects.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of projects
+          schema:
+            items:
+              $ref: '#/definitions/models.GetProjectResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Failed to fetch projects
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get all projects
+      tags:
+      - Projects
+    post:
+      consumes:
+      - application/json
+      description: Creates a new project in the system. Requires HR or Admin privileges.
+      parameters:
+      - description: Project creation payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateProjectPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Project created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or missing code/name
+          schema:
+            type: string
+        "409":
+          description: A project with this code already exists
+          schema:
+            type: string
+        "500":
+          description: Failed to create project
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create a new project
+      tags:
+      - Projects
+  /projects/{projectid}/tasks:
+    get:
+      consumes:
+      - application/json
+      description: Fetches all tasks associated with a specific project ID (used for
+        the Board view).
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of project tasks
+          schema:
+            items:
+              $ref: '#/definitions/models.BoardTaskResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Failed to fetch project tasks
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get tasks for a project
+      tags:
+      - Tasks
+    post:
+      consumes:
+      - application/json
+      description: Creates a new task under a specific project.
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectid
+        required: true
+        type: string
+      - description: Task creation payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateTaskPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Task created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Failed to create task
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create a new task
+      tags:
+      - Tasks
+  /tasks/{taskid}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the complete details of a specific task, including assignees
+        and total spent hours.
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Detailed task information
+          schema:
+            $ref: '#/definitions/models.TaskDetailResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Failed to fetch task details
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get task details
+      tags:
+      - Tasks
+    put:
+      consumes:
+      - application/json
+      description: Fully updates an existing task's details.
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskid
+        required: true
+        type: string
+      - description: Task update payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTaskPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or missing task name
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Failed to update task
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update a task
+      tags:
+      - Tasks
+  /tasks/{taskid}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the status of a specific task (e.g., todo, in_progress,
+        in_review, done).
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskid
+        required: true
+        type: string
+      - description: Task status payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTaskStatusPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or status
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Failed to update task status
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update task status
+      tags:
+      - Tasks
+  /tasks/{taskid}/time:
+    patch:
+      consumes:
+      - application/json
+      description: Logs hours spent on a specific task by the authenticated user.
+        User must be assigned to the task.
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskid
+        required: true
+        type: string
+      - description: Hours to log
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.LogTimePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Hours logged successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid body or hours less than zero
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: User is not assigned to task
+          schema:
+            type: string
+        "500":
+          description: Failed to log time
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Log time on a task
+      tags:
+      - Tasks
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a list of all employees in the system. Requires HR or Admin
+        privileges.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of employees
+          schema:
+            items:
+              $ref: '#/definitions/models.UserListResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Failed to fetch employees
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: List all employees
+      tags:
+      - Users
+  /users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the profile details of a specific employee by ID. Requires
+        HR or Admin privileges.
+      parameters:
+      - description: Employee User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile data
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: User not found
+          schema:
+            type: string
+        "500":
+          description: Failed to get user
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get a specific employee
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Allows HR to update specific employee details. (Role, Email, Password,
+        Position are excluded).
+      parameters:
+      - description: Employee User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Employee update fields
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.HRUpdateEmployeePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated user profile
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update employee
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update employee (HR)
+      tags:
+      - Users
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the profile details of the currently authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile data
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: User not found
+          schema:
+            type: string
+        "500":
+          description: Failed to get user
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Allows the authenticated user to update their own avatar, location,
+        mobile, or skype.
+      parameters:
+      - description: Profile update fields
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateSelfPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated user profile
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Invalid request Body
+          schema:
+            type: string
+        "500":
+          description: Failed to update profile
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update own profile
+      tags:
+      - Users
+  /users/me/tasks:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a list of tasks assigned to the currently authenticated
+        user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of assigned tasks
+          schema:
+            items:
+              $ref: '#/definitions/models.MyTaskResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Failed to fetch tasks
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get current user's tasks
+      tags:
+      - Tasks
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

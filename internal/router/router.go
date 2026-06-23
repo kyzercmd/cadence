@@ -4,9 +4,11 @@ import (
 	"net/http"
 
 	"github.com/justinas/alice"
+	_ "github.com/kyzercmd/cadence/docs"
 	"github.com/kyzercmd/cadence/internal/handler"
 	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/rs/cors"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Handlers struct {
@@ -24,6 +26,8 @@ type Middlewares struct {
 func SetupRoutes(h Handlers, m Middlewares) http.Handler {
 	mux := http.NewServeMux()
 
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+
 	mapAuthRoutes(mux, h, m)
 	mapUserRoutes(mux, h, m)
 
@@ -32,7 +36,7 @@ func SetupRoutes(h Handlers, m Middlewares) http.Handler {
 		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: true,
-		Debug:            true,
+		Debug:            false,
 	})
 
 	handler := c.Handler(mux)

@@ -104,6 +104,10 @@ func (s *authService) SeedAdmin(ctx context.Context, email string, password stri
 		return nil
 	}
 
+	if !errors.Is(err, models.ErrUserNotFound) {
+		return err
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil

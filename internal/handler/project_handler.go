@@ -19,6 +19,19 @@ func NewProjectHandler(s service.ProjectService) *ProjectHandler {
 	return &ProjectHandler{ProjectService: s}
 }
 
+// CreateProject godoc
+// @Summary      Create a new project
+// @Description  Creates a new project in the system. Requires HR or Admin privileges.
+// @Tags         Projects
+// @Accept       json
+// @Produce      json
+// @Param        payload body models.CreateProjectPayload true "Project creation payload"
+// @Success      201     {object}  map[string]interface{} "Project created successfully"
+// @Failure      400     {string}  string "Invalid request body or missing code/name"
+// @Failure      409     {string}  string "A project with this code already exists"
+// @Failure      500     {string}  string "Failed to create project"
+// @Security     BearerAuth
+// @Router       /projects [post]
 func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	var payload models.CreateProjectPayload
 
@@ -54,6 +67,17 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// GetProjects godoc
+// @Summary      Get all projects
+// @Description  Fetches a list of projects. Employees will see projects they are members of, while HR/Admins may see all projects.
+// @Tags         Projects
+// @Accept       json
+// @Produce      json
+// @Success      200     {array}   models.GetProjectResponse "List of projects"
+// @Failure      401     {string}  string "Unauthorized"
+// @Failure      500     {string}  string "Failed to fetch projects"
+// @Security     BearerAuth
+// @Router       /projects [get]
 func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 	userID, okID := r.Context().Value(middleware.UserIDkey).(string)
 	userRole, okRole := r.Context().Value(middleware.UserRoleKey).(models.Role)
