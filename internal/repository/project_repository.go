@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kyzercmd/cadence/internal/models"
 )
 
@@ -15,19 +16,19 @@ type ProjectRepository interface {
 }
 
 type postgresProjectRepository struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewProjectRepository(db *sql.DB) ProjectRepository {
+func NewProjectRepository(db *pgxpool.Pool) ProjectRepository {
 	return &postgresProjectRepository{db: db}
 }
 
 func (r *postgresProjectRepository) CreateProject(ctx context.Context, payload *models.CreateProjectPayload) (string, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return "", nil
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	var ProjectID string
 
@@ -36,10 +37,10 @@ func (r *postgresProjectRepository) CreateProject(ctx context.Context, payload *
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 			RETURNING id
 			`
-	err = tx.QueryRowContext(ctx, query, payload.Code, payload.Name, payload.Description, models.ProjectStatusActive, payload.Priority, payload.StartDate, payload.Deadline, payload.ImageURL).Scan(&ProjectID)
+	err = tx.QueryRow(ctx, query, payload.Code, payload.Name, payload.Description, models.ProjectStatusActive, payload.Priority, payload.StartDate, payload.Deadline, payload.ImageURL).Scan(&ProjectID)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return "", models.ErrProjectCodeExists
 		}
 		return "", err
@@ -51,14 +52,14 @@ func (r *postgresProjectRepository) CreateProject(ctx context.Context, payload *
 						VALUES ($1, $2)
 						`
 		for _, memberID := range payload.MemberIDs {
-			_, err := tx.ExecContext(ctx, memberQuery, ProjectID, memberID)
+			_, err := tx.Exec(ctx, memberQuery, ProjectID, memberID)
 			if err != nil {
 				return "", err
 			}
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		return "", err
 	}
 
@@ -67,13 +68,13 @@ func (r *postgresProjectRepository) CreateProject(ctx context.Context, payload *
 
 func (r *postgresProjectRepository) GetAllProjects(ctx context.Context) ([]*models.GetProjectResponse, error) {
 	query := `
-			SELECT p.id, p.code, p.name, p.description, p.status, p.priority, p.created_at, p.start_date, p.start_date, p.deadline, p.image_url, COALESCE(json_agg(pm.user_id) FILTER (WHERE pm.user_id IS NOT NULL), '[]') AS member_ids
+			SELECT p.id, p.code, p.name, p.description, p.status, p.priority, p.created_at, p.start_date, p.deadline, p.image_url, COALESCE(json_agg(pm.user_id) FILTER (WHERE pm.user_id IS NOT NULL), '[]') AS member_ids
 			FROM projects p
 			LEFT JOIN project_members pm ON p.id = pm.project_id
 			GROUP BY p.id
 			`
 
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +117,7 @@ func (r *postgresProjectRepository) GetProjectByID(ctx context.Context, userID s
 			GROUP BY p.id 
 			`
 
-	rows, err := r.db.QueryContext(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}

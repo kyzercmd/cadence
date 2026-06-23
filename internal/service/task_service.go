@@ -35,6 +35,13 @@ func (s *taskService) GetMyTasks(ctx context.Context, userID string) ([]*models.
 }
 
 func (s *taskService) CreateTask(ctx context.Context, projectID string, payload *models.CreateTaskPayload) (string, error) {
+	if payload.Attachments == nil {
+		payload.Attachments = []string{}
+	}
+	if payload.Links == nil {
+		payload.Links = []string{}
+	}
+
 	taskID, err := s.repo.CreateTaskWithAssignees(ctx, projectID, payload)
 	if err != nil {
 		return "", err

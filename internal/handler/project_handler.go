@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/kyzercmd/cadence/internal/middleware"
@@ -64,6 +65,7 @@ func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 
 	projects, err := h.ProjectService.GetProjects(r.Context(), userID, userRole)
 	if err != nil {
+		log.Printf("DEBUG: %v", err)
 		http.Error(w, "Failed to fetch projects", http.StatusInternalServerError)
 		return
 	}

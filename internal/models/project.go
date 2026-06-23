@@ -37,19 +37,19 @@ type MyTaskResponse struct {
 	TaskName    string     `json:"taskName"`
 	Status      TaskStatus `json:"status"`
 	Priority    Priority   `json:"priority"`
-	DueDate     *string    `json:"dueDate"`
+	DueDate     *time.Time `json:"dueDate"`
 	ProjectName string     `json:"projectName"`
 }
 
 type CreateTaskPayload struct {
-	Name          string   `json:"name"`
-	Description   *string  `json:"description"`
-	Priority      Priority `json:"priority"`
-	EstimateHours float64  `json:"estimateHours"`
-	DueDate       *string  `json:"dueDate"` // YYYY-MM-DD
-	AssigneeIDs   []string `json:"assigneeIds"`
-	Attachments   []string `json:"attachments"`
-	Links         []string `json:"links"`
+	Name          string     `json:"name"`
+	Description   *string    `json:"description"`
+	Priority      Priority   `json:"priority"`
+	EstimateHours float64    `json:"estimateHours"`
+	DueDate       *time.Time `json:"dueDate"`
+	AssigneeIDs   []string   `json:"assigneeIds"`
+	Attachments   []string   `json:"attachments"`
+	Links         []string   `json:"links"`
 }
 
 type UpdateTaskStatusPayload struct {
@@ -62,7 +62,7 @@ type UpdateTaskPayload struct {
 	Status        TaskStatus `json:"status"`
 	Priority      Priority   `json:"priority"`
 	EstimateHours float64    `json:"estimateHours"`
-	DueDate       *string    `json:"dueDate"` //YYYY-MM-DD
+	DueDate       *time.Time `json:"dueDate"`
 	AssigneeIDs   []string   `json:"assigneeIds"`
 	Attachments   []string   `json:"attachments"`
 	Links         []string   `json:"links"`
@@ -80,7 +80,7 @@ type BoardTaskResponse struct {
 	Priority        Priority   `json:"priority"`
 	EstimateHours   float64    `json:"estimateHours"`
 	TotalSpentHours float64    `json:"totalSpentHours"`
-	DueDate         *string    `json:"dueDate"`
+	DueDate         *time.Time `json:"dueDate"`
 	Assignee        []Assignee `json:"assignees"`
 }
 
@@ -93,7 +93,7 @@ type TaskDetailResponse struct {
 	Priority        Priority   `json:"priority"`
 	EstimateHours   float64    `json:"estimateHours"`
 	TotalSpentHours float64    `json:"totalSpentHours"`
-	DueDate         *string    `json:"dueDate"`
+	DueDate         *time.Time `json:"dueDate"`
 	Attachments     []string   `json:"attachments"`
 	Links           []string   `json:"links"`
 	Assignees       []Assignee `json:"assignees"`
@@ -104,14 +104,14 @@ type LogTimePayload struct {
 }
 
 type CreateProjectPayload struct {
-	Code        string   `json:"code"` // PN0001245
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Priority    Priority `json:"priority"`
-	StartDate   *string  `json:"startDate,omitempty"`
-	Deadline    *string  `json:"deadline,omitempty"`
-	ImageURL    *string  `json:"imageUrl,omitempty"`
-	MemberIDs   []string `json:"memberIds"`
+	Code        string     `json:"code"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Priority    Priority   `json:"priority"`
+	StartDate   *time.Time `json:"startDate,omitempty"`
+	Deadline    *time.Time `json:"deadline,omitempty"`
+	ImageURL    *string    `json:"imageUrl,omitempty"`
+	MemberIDs   []string   `json:"memberIds"`
 }
 
 type GetProjectResponse struct {
@@ -122,8 +122,8 @@ type GetProjectResponse struct {
 	Status      ProjectStatus `json:"status"`
 	Priority    Priority      `json:"priority"`
 	MemberIDs   []string      `json:"memberIds"`
-	CreatedAt   string        `json:"createdAt"`
-	StartDate   *string       `json:"startDate,omitempty"`
-	Deadline    *string       `json:"deadline,omitempty"`
+	CreatedAt   time.Time     `json:"createdAt"`
+	StartDate   *time.Time    `json:"startDate,omitempty"`
+	Deadline    *time.Time    `json:"deadline,omitempty"`
 	ImageURL    *string       `json:"imageUrl,omitempty"`
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/kyzercmd/cadence/internal/models"
@@ -25,19 +26,19 @@ func (h *UserHandler) CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var reqUser struct {
-		Name      string `json:"name"`
-		Email     string `json:"email"`
-		Password  string `json:"password"`
-		AvatarURL string `json:"avatarUrl"`
-		Role      string `json:"role"`
-		Position  string `json:"position"`
-		Level     string `json:"level"`
-		Gender    string `json:"gender"`
-		Birthday  string `json:"birthday"`
-		Company   string `json:"company"`
-		Location  string `json:"location"`
-		Mobile    string `json:"mobile"`
-		Skype     string `json:"skype"`
+		Name      string    `json:"name"`
+		Email     string    `json:"email"`
+		Password  string    `json:"password"`
+		AvatarURL string    `json:"avatarUrl"`
+		Role      string    `json:"role"`
+		Position  string    `json:"position"`
+		Level     string    `json:"level"`
+		Gender    string    `json:"gender"`
+		Birthday  time.Time `json:"birthday"`
+		Company   string    `json:"company"`
+		Location  string    `json:"location"`
+		Mobile    string    `json:"mobile"`
+		Skype     string    `json:"skype"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&reqUser)
@@ -116,7 +117,7 @@ func (h *UserHandler) HRUpdateEmployee(w http.ResponseWriter, r *http.Request) {
 		AvatarURL *string        `json:"avatarUrl"`
 		Level     *models.Level  `json:"level"`
 		Gender    *models.Gender `json:"gender"`
-		Birthday  *string        `json:"birthday"`
+		Birthday  *time.Time     `json:"birthday"`
 		Company   *string        `json:"company"`
 		Location  *string        `json:"location"`
 		Mobile    *string        `json:"mobile"`
@@ -166,7 +167,7 @@ func (h *UserHandler) AdminUpdateEmployee(w http.ResponseWriter, r *http.Request
 		Position  *string        `json:"position"`
 		Level     *models.Level  `json:"level"`
 		Gender    *models.Gender `json:"gender"`
-		Birthday  *string        `json:"birthday"`
+		Birthday  *time.Time     `json:"birthday"`
 		Company   *string        `json:"company"`
 		Location  *string        `json:"location"`
 		Mobile    *string        `json:"mobile"`

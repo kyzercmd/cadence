@@ -109,6 +109,8 @@ func (s *authService) SeedAdmin(ctx context.Context, email string, password stri
 		return nil
 	}
 
+	birthday := time.Date(1995, time.January, 1, 0, 0, 0, 0, time.UTC)
+
 	adminUser := &models.User{
 		Name:      "Administrator",
 		Email:     email,
@@ -118,7 +120,7 @@ func (s *authService) SeedAdmin(ctx context.Context, email string, password stri
 		Position:  "System Owner",
 		Level:     models.LevelSenior,
 		Gender:    models.GenderMale,
-		Birthday:  "1995-01-01",
+		Birthday:  birthday,
 		Company:   "My Company",
 		Location:  "Office",
 		Mobile:    "+8801700000000",

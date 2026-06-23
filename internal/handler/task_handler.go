@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/kyzercmd/cadence/internal/middleware"
@@ -23,6 +24,7 @@ func (h *TaskHandler) GetMyTasks(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := h.taskService.GetMyTasks(r.Context(), userID)
 	if err != nil {
+		log.Printf("DEBUG: %v", err)
 		http.Error(w, "Failed to fetch tasks", http.StatusInternalServerError)
 		return
 	}
@@ -48,7 +50,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]any{
-		"Message": "Message created successfully",
+		"Message": "Task created successfully",
 		"TaskID":  taskID,
 	}
 
@@ -115,6 +117,7 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		log.Printf("DEBUG: %v", err)
 		http.Error(w, "Failed to update task", http.StatusInternalServerError)
 		return
 	}
@@ -151,6 +154,7 @@ func (h *TaskHandler) GetTaskDetails(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		log.Printf("DEBUG: %v", err)
 		http.Error(w, "Failed to fetch task details", http.StatusInternalServerError)
 		return
 	}
