@@ -17,6 +17,7 @@ type Handlers struct {
 	Task       *handler.TaskHandler
 	Project    *handler.ProjectHandler
 	Attendance *handler.AttendanceHandler
+	Storage    *handler.StorageHandler
 }
 
 type Middlewares struct {
@@ -53,6 +54,8 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	protectedChain := alice.New(m.Auth.RequireAuth)
 	HRChain := protectedChain.Append(middleware.RequireRole("hr", "admin"))
 	AdminChain := protectedChain.Append(middleware.RequireRole("admin"))
+
+	mux.Handle("POST /api/upload", protectedChain.ThenFunc(h.Storage.UploadFile))
 
 	mux.Handle("POST /api/admin/employee", AdminChain.ThenFunc(h.User.CreateEmployee))
 	mux.Handle("POST /api/projects/{projectid}/tasks", protectedChain.ThenFunc(h.Task.CreateTask))

@@ -42,6 +42,7 @@ func main() {
 	taskService := service.NewTaskService(taskRepo)
 	projectService := service.NewProjectService(projectRepo)
 	attendanceService := service.NewAttendanceService(attendanceRepo)
+	StorageService := service.NewSupabaseStorageService(cfg.SupabaseURL, cfg.SupabaseKey, cfg.BucketName)
 
 	err := authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
 	if err != nil {
@@ -54,6 +55,7 @@ func main() {
 		Task:       handler.NewTaskHandler(taskService),
 		Project:    handler.NewProjectHandler(projectService),
 		Attendance: handler.NewAttendanceHandler(attendanceService),
+		Storage:    handler.NewStorageHandler(StorageService),
 	}
 
 	appMws := router.Middlewares{

@@ -4,7 +4,7 @@ type Role string
 
 const (
 	RoleAdmin    Role = "admin"
-	RoleHR       Role = "HR"
+	RoleHR       Role = "hr"
 	RoleEmployee Role = "employee"
 )
 

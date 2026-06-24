@@ -990,6 +990,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Uploads an image or document (max 10MB) to cloud storage and returns the public URL. Use this URL in subsequent JSON payloads for avatars, project images, or attachments.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Storage"
+                ],
+                "summary": "Upload a file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "The file to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully uploaded file",
+                        "schema": {
+                            "$ref": "#/definitions/handler.UploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid file or file too large",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to upload file to cloud",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "security": [
@@ -1296,6 +1345,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handler.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Assignee": {
             "type": "object",
             "properties": {
@@ -1694,7 +1751,7 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "admin",
-                "HR",
+                "hr",
                 "employee"
             ],
             "x-enum-varnames": [

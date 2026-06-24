@@ -1,5 +1,10 @@
 basePath: /api
 definitions:
+  handler.UploadResponse:
+    properties:
+      url:
+        type: string
+    type: object
   models.Assignee:
     properties:
       id:
@@ -265,7 +270,7 @@ definitions:
   models.Role:
     enum:
     - admin
-    - HR
+    - hr
     - employee
     type: string
     x-enum-varnames:
@@ -1086,6 +1091,39 @@ paths:
       summary: Log time on a task
       tags:
       - Tasks
+  /upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads an image or document (max 10MB) to cloud storage and returns
+        the public URL. Use this URL in subsequent JSON payloads for avatars, project
+        images, or attachments.
+      parameters:
+      - description: The file to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully uploaded file
+          schema:
+            $ref: '#/definitions/handler.UploadResponse'
+        "400":
+          description: Invalid file or file too large
+          schema:
+            type: string
+        "500":
+          description: Failed to upload file to cloud
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Upload a file
+      tags:
+      - Storage
   /users:
     get:
       consumes:
