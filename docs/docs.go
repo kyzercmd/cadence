@@ -510,6 +510,264 @@ const docTemplate = `{
                 }
             }
         },
+        "/leave": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows an employee to submit a time-off request (Sick, Vacation, Remote) with dates and reasons.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leave"
+                ],
+                "summary": "Submit a leave request",
+                "parameters": [
+                    {
+                        "description": "Leave Request Details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateLeavePayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Leave request submitted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid payload or dates",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/leave/all": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches a complete history of all leave requests (pending, approved, rejected) across the company. Requires HR or Admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leave"
+                ],
+                "summary": "Get all leave requests (HR History)",
+                "responses": {
+                    "200": {
+                        "description": "List of all requests with user details",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.LeaveRequestWithUser"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/leave/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches all past and pending leave requests for the logged-in employee.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leave"
+                ],
+                "summary": "Get personal leave requests",
+                "responses": {
+                    "200": {
+                        "description": "List of leave requests",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.LeaveRequest"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/leave/pending": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches a queue of all pending leave requests across the company. Requires HR or Admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leave"
+                ],
+                "summary": "Get pending leave requests (HR)",
+                "responses": {
+                    "200": {
+                        "description": "List of pending requests with user details",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.LeaveRequestWithUser"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/leave/{id}/review": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows HR or Admins to action a pending leave request and optionally provide a comment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leave"
+                ],
+                "summary": "Approve or Reject a leave request",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Leave Request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Approval or Rejection details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ReviewLeavePayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Leave request updated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/projects": {
             "get": {
                 "security": [
@@ -1433,6 +1691,23 @@ const docTemplate = `{
                 }
             }
         },
+        "models.CreateLeavePayload": {
+            "type": "object",
+            "properties": {
+                "endDate": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.LeaveType"
+                }
+            }
+        },
         "models.CreateProjectPayload": {
             "type": "object",
             "properties": {
@@ -1660,6 +1935,108 @@ const docTemplate = `{
                 }
             }
         },
+        "models.LeaveRequest": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "endDate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "reviewerComment": {
+                    "type": "string"
+                },
+                "reviewerId": {
+                    "type": "string"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.LeaveStatus"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.LeaveType"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.LeaveRequestWithUser": {
+            "type": "object",
+            "properties": {
+                "avatarUrl": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "endDate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "reviewerComment": {
+                    "type": "string"
+                },
+                "reviewerId": {
+                    "type": "string"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.LeaveStatus"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.LeaveType"
+                },
+                "userId": {
+                    "type": "string"
+                },
+                "userName": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.LeaveStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "approved",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "LeaveStatusPending",
+                "LeaveStatusApproved",
+                "LeaveStatusRejected"
+            ]
+        },
+        "models.LeaveType": {
+            "type": "string",
+            "enum": [
+                "vacation",
+                "sick",
+                "remote"
+            ],
+            "x-enum-varnames": [
+                "LeaveTypeVacation",
+                "LeaveTypeSick",
+                "LeaveTypeRemote"
+            ]
+        },
         "models.Level": {
             "type": "string",
             "enum": [
@@ -1744,6 +2121,17 @@ const docTemplate = `{
             "properties": {
                 "refreshtoken": {
                     "type": "string"
+                }
+            }
+        },
+        "models.ReviewLeavePayload": {
+            "type": "object",
+            "properties": {
+                "reviewerComment": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.LeaveStatus"
                 }
             }
         },

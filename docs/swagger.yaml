@@ -57,6 +57,17 @@ definitions:
       totalSpentHours:
         type: number
     type: object
+  models.CreateLeavePayload:
+    properties:
+      endDate:
+        type: string
+      reason:
+        type: string
+      startDate:
+        type: string
+      type:
+        $ref: '#/definitions/models.LeaveType'
+    type: object
   models.CreateProjectPayload:
     properties:
       code:
@@ -207,6 +218,76 @@ definitions:
       skype:
         type: string
     type: object
+  models.LeaveRequest:
+    properties:
+      createdAt:
+        type: string
+      endDate:
+        type: string
+      id:
+        type: string
+      reason:
+        type: string
+      reviewerComment:
+        type: string
+      reviewerId:
+        type: string
+      startDate:
+        type: string
+      status:
+        $ref: '#/definitions/models.LeaveStatus'
+      type:
+        $ref: '#/definitions/models.LeaveType'
+      userId:
+        type: string
+    type: object
+  models.LeaveRequestWithUser:
+    properties:
+      avatarUrl:
+        type: string
+      createdAt:
+        type: string
+      endDate:
+        type: string
+      id:
+        type: string
+      reason:
+        type: string
+      reviewerComment:
+        type: string
+      reviewerId:
+        type: string
+      startDate:
+        type: string
+      status:
+        $ref: '#/definitions/models.LeaveStatus'
+      type:
+        $ref: '#/definitions/models.LeaveType'
+      userId:
+        type: string
+      userName:
+        type: string
+    type: object
+  models.LeaveStatus:
+    enum:
+    - pending
+    - approved
+    - rejected
+    type: string
+    x-enum-varnames:
+    - LeaveStatusPending
+    - LeaveStatusApproved
+    - LeaveStatusRejected
+  models.LeaveType:
+    enum:
+    - vacation
+    - sick
+    - remote
+    type: string
+    x-enum-varnames:
+    - LeaveTypeVacation
+    - LeaveTypeSick
+    - LeaveTypeRemote
   models.Level:
     enum:
     - Junior
@@ -266,6 +347,13 @@ definitions:
     properties:
       refreshtoken:
         type: string
+    type: object
+  models.ReviewLeavePayload:
+    properties:
+      reviewerComment:
+        type: string
+      status:
+        $ref: '#/definitions/models.LeaveStatus'
     type: object
   models.Role:
     enum:
@@ -777,6 +865,174 @@ paths:
       summary: Refresh authentication session
       tags:
       - Auth
+  /leave:
+    post:
+      consumes:
+      - application/json
+      description: Allows an employee to submit a time-off request (Sick, Vacation,
+        Remote) with dates and reasons.
+      parameters:
+      - description: Leave Request Details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateLeavePayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Leave request submitted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload or dates
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Submit a leave request
+      tags:
+      - Leave
+  /leave/{id}/review:
+    patch:
+      consumes:
+      - application/json
+      description: Allows HR or Admins to action a pending leave request and optionally
+        provide a comment.
+      parameters:
+      - description: Leave Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Approval or Rejection details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.ReviewLeavePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Leave request updated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Approve or Reject a leave request
+      tags:
+      - Leave
+  /leave/all:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a complete history of all leave requests (pending, approved,
+        rejected) across the company. Requires HR or Admin privileges.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of all requests with user details
+          schema:
+            items:
+              $ref: '#/definitions/models.LeaveRequestWithUser'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get all leave requests (HR History)
+      tags:
+      - Leave
+  /leave/me:
+    get:
+      consumes:
+      - application/json
+      description: Fetches all past and pending leave requests for the logged-in employee.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of leave requests
+          schema:
+            items:
+              $ref: '#/definitions/models.LeaveRequest'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get personal leave requests
+      tags:
+      - Leave
+  /leave/pending:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a queue of all pending leave requests across the company.
+        Requires HR or Admin privileges.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of pending requests with user details
+          schema:
+            items:
+              $ref: '#/definitions/models.LeaveRequestWithUser'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get pending leave requests (HR)
+      tags:
+      - Leave
   /projects:
     get:
       consumes:

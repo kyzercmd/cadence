@@ -23,7 +23,11 @@ var (
 )
 
 var (
-	ErrAlreadyClockedIn  = errors.New("You have already clocked in for today")
-	ErrHaveNotClockedIn  = errors.New("You have not clocked in for today")
-	ErrAlreadyClockedOut = errors.New("You have already clocked out for today")
+	ErrAlreadyClockedIn     = errors.New("You have already clocked in for today")
+	ErrHaveNotClockedIn     = errors.New("You have not clocked in for today")
+	ErrAlreadyClockedOut    = errors.New("You have already clocked out for today")
+	ErrLeaveRequestNotFound = errors.New("Leave request not found")
+	ErrInvalidLeaveDates    = errors.New("End date cannot be before Start date")
+	ErrInvalidLeaveType     = errors.New("Invalid Leave type")
+	ErrInvalidLeaveStatus   = errors.New("Status can only be Accepted or Rejected")
 )

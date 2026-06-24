@@ -17,6 +17,7 @@ type Handlers struct {
 	Task       *handler.TaskHandler
 	Project    *handler.ProjectHandler
 	Attendance *handler.AttendanceHandler
+	Leave      *handler.LeaveHandler
 	Storage    *handler.StorageHandler
 }
 
@@ -62,18 +63,20 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("POST /api/projects", HRChain.ThenFunc(h.Project.CreateProject))
 	mux.Handle("POST /api/attendance/clock-in", protectedChain.ThenFunc(h.Attendance.ClockIn))
 	mux.Handle("POST /api/attendance/clock-out", protectedChain.ThenFunc(h.Attendance.ClockOut))
+	mux.Handle("POST /api/leave", protectedChain.ThenFunc(h.Leave.SubmitLeave))
 
 	mux.Handle("PATCH /api/users/me", protectedChain.ThenFunc(h.User.UpdateSelf))
-	mux.Handle("PATCH /api/users/{id}", HRChain.ThenFunc(h.User.HRUpdateEmployee))
-	mux.Handle("PATCH /api/admin/users/{id}", AdminChain.ThenFunc(h.User.AdminUpdateEmployee))
+	mux.Handle("PATCH /api/users/{targetid}", HRChain.ThenFunc(h.User.HRUpdateEmployee))
+	mux.Handle("PATCH /api/admin/users/{targetid}", AdminChain.ThenFunc(h.User.AdminUpdateEmployee))
 	mux.Handle("PATCH /api/tasks/{taskid}/status", protectedChain.ThenFunc(h.Task.UpdateTaskStatus))
 	mux.Handle("PATCH /api/tasks/{taskid}/time", protectedChain.ThenFunc(h.Task.LogTime))
+	mux.Handle("PATCH /api/leave/{leaveid}/review", HRChain.ThenFunc(h.Leave.ReviewLeave))
 
 	mux.Handle("PUT /api/tasks/{taskid}", protectedChain.ThenFunc(h.Task.UpdateTask))
 
 	mux.Handle("GET /api/users/me", protectedChain.ThenFunc(h.User.GetSelf))
 	mux.Handle("GET /api/users", HRChain.ThenFunc(h.User.GetAllEmployee))
-	mux.Handle("GET /api/users/{id}", HRChain.ThenFunc(h.User.GetEmployee))
+	mux.Handle("GET /api/users/{targetid}", HRChain.ThenFunc(h.User.GetEmployee))
 	mux.Handle("GET /api/users/me/tasks", protectedChain.ThenFunc(h.Task.GetMyTasks))
 	mux.Handle("GET /api/projects/{projectid}/tasks", protectedChain.ThenFunc(h.Task.GetProjectTasks))
 	mux.Handle("GET /api/tasks/{taskid}", protectedChain.ThenFunc(h.Task.GetTaskDetails))
@@ -82,5 +85,8 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("GET /api/attendance/history", protectedChain.ThenFunc(h.Attendance.GetMyHistory))
 	mux.Handle("GET /api/attendance/employees", HRChain.ThenFunc(h.Attendance.GetAllEmployeesAttendance))
 	mux.Handle("GET /api/attendance/{targetid}/history", HRChain.ThenFunc(h.Attendance.GetEmployeeHistory))
+	mux.Handle("GET /api/leave/me", protectedChain.ThenFunc(h.Leave.GetMyLeaves))
+	mux.Handle("GET /api/leave/pending", HRChain.ThenFunc(h.Leave.GetPendingLeaves))
+	mux.Handle("GET /api/leave/all", HRChain.ThenFunc(h.Leave.GetAllLeaves))
 
 }

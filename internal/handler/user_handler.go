@@ -128,7 +128,7 @@ func (h *UserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 // @Security     BearerAuth
 // @Router       /users/{id} [patch]
 func (h *UserHandler) HRUpdateEmployee(w http.ResponseWriter, r *http.Request) {
-	targetID := r.PathValue("id")
+	targetID := r.PathValue("targetid")
 
 	var req *models.HRUpdateEmployeePayload
 
@@ -176,7 +176,7 @@ func (h *UserHandler) HRUpdateEmployee(w http.ResponseWriter, r *http.Request) {
 // @Security     BearerAuth
 // @Router       /admin/users/{id} [patch]
 func (h *UserHandler) AdminUpdateEmployee(w http.ResponseWriter, r *http.Request) {
-	userID := r.PathValue("id")
+	userID := r.PathValue("targetid")
 
 	var req models.UserUpdatePayload
 
@@ -256,7 +256,7 @@ func (h *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
 // @Security     BearerAuth
 // @Router       /users/{id} [get]
 func (h *UserHandler) GetEmployee(w http.ResponseWriter, r *http.Request) {
-	userID := r.PathValue("id")
+	userID := r.PathValue("targetid")
 
 	user, err := h.userService.GetUserProfile(r.Context(), userID)
 	if err != nil {

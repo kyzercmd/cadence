@@ -11,6 +11,16 @@ type AttendanceEntry struct {
 	TotalMinutes int        `json:"totalMinutes"`
 }
 
+type EmployeeLatestAttendance struct {
+	UserID       string     `json:"userId"`
+	Name         string     `json:"name"`
+	AvatarURL    string     `json:"avatar_url"`
+	Role         Role       `json:"role"`
+	Position     string     `json:"position"`
+	LastDate     *time.Time `json:"lastUpdate,omitempty"`
+	TotalMinutes *int64     `json:"totalMinutes,omitempty"`
+}
+
 type LeaveRequest struct {
 	ID              string      `json:"id"`
 	UserID          string      `json:"userId"`
@@ -24,12 +34,20 @@ type LeaveRequest struct {
 	CreatedAt       time.Time   `json:"createdAt"`
 }
 
-type EmployeeLatestAttendance struct {
-	UserID       string     `json:"userId"`
-	Name         string     `json:"name"`
-	AvatarURL    string     `json:"avatar_url"`
-	Role         Role       `json:"role"`
-	Position     string     `json:"position"`
-	LastDate     *time.Time `json:"lastUpdate,omitempty"`
-	TotalMinutes *int64     `json:"totalMinutes,omitempty"`
+type CreateLeavePayload struct {
+	Type      LeaveType `json:"type"`
+	StartDate time.Time `json:"startDate"`
+	EndDate   time.Time `json:"endDate"`
+	Reason    string    `json:"reason"`
+}
+
+type ReviewLeavePayload struct {
+	Status          LeaveStatus `json:"status"`
+	ReviewerComment *string     `json:"reviewerComment"`
+}
+
+type LeaveRequestWithUser struct {
+	LeaveRequest
+	UserName  string `json:"userName"`
+	AvatarURL string `json:"avatarUrl"`
 }

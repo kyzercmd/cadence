@@ -36,12 +36,14 @@ func main() {
 	taskRepo := repository.NewTaskRepository(cfg.DB)
 	projectRepo := repository.NewProjectRepository(cfg.DB)
 	attendanceRepo := repository.NewAttendanceRepository(cfg.DB)
+	leaveRepo := repository.NewLeaveRepository(cfg.DB)
 
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	userService := service.NewUserService(userRepo)
 	taskService := service.NewTaskService(taskRepo)
 	projectService := service.NewProjectService(projectRepo)
 	attendanceService := service.NewAttendanceService(attendanceRepo)
+	leaveService := service.NewLeaveService(leaveRepo)
 	StorageService := service.NewSupabaseStorageService(cfg.SupabaseURL, cfg.SupabaseKey, cfg.BucketName)
 
 	err := authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
@@ -55,6 +57,7 @@ func main() {
 		Task:       handler.NewTaskHandler(taskService),
 		Project:    handler.NewProjectHandler(projectService),
 		Attendance: handler.NewAttendanceHandler(attendanceService),
+		Leave:      handler.NewLeaveHandler(leaveService),
 		Storage:    handler.NewStorageHandler(StorageService),
 	}
 
