@@ -39,13 +39,13 @@ func main() {
 	leaveRepo := repository.NewLeaveRepository(cfg.DB)
 	notificationRepo := repository.NewNotificationRepository(cfg.DB)
 
+	notificationService := service.NewNotificationService(notificationRepo)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	userService := service.NewUserService(userRepo)
-	taskService := service.NewTaskService(taskRepo)
+	taskService := service.NewTaskService(taskRepo, notificationService)
 	projectService := service.NewProjectService(projectRepo)
 	attendanceService := service.NewAttendanceService(attendanceRepo)
-	leaveService := service.NewLeaveService(leaveRepo)
-	notificationService := service.NewNotificationService(notificationRepo)
+	leaveService := service.NewLeaveService(leaveRepo, notificationService, userRepo)
 	StorageService := service.NewSupabaseStorageService(cfg.SupabaseURL, cfg.SupabaseKey, cfg.BucketName)
 
 	err := authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)

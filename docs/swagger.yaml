@@ -325,6 +325,21 @@ definitions:
       taskName:
         type: string
     type: object
+  models.Notification:
+    properties:
+      body:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      read:
+        type: boolean
+      title:
+        type: string
+      userId:
+        type: string
+    type: object
   models.Priority:
     enum:
     - low
@@ -580,7 +595,7 @@ paths:
       summary: Create a new employee
       tags:
       - Users
-  /admin/users/{id}:
+  /admin/users/{targetid}:
     patch:
       consumes:
       - application/json
@@ -899,7 +914,7 @@ paths:
       summary: Submit a leave request
       tags:
       - Leave
-  /leave/{id}/review:
+  /leave/{leaveid}/review:
     patch:
       consumes:
       - application/json
@@ -1033,6 +1048,84 @@ paths:
       summary: Get pending leave requests (HR)
       tags:
       - Leave
+  /notifications:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the logged-in user's recent notifications.
+      parameters:
+      - description: Number of records to return (defaults to 20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of notifications
+          schema:
+            items:
+              $ref: '#/definitions/models.Notification'
+            type: array
+        "500":
+          description: Failed to fetch notifications
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get personal notifications
+      tags:
+      - Notifications
+  /notifications/{notifid}/read:
+    patch:
+      consumes:
+      - application/json
+      description: Marks a specific notification as read when the user clicks on it.
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully marked as read
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Mark notification as read
+      tags:
+      - Notifications
+  /notifications/read-all:
+    patch:
+      consumes:
+      - application/json
+      description: Marks all unread notifications as read for the logged-in user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully marked all as read
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Mark all notifications as read
+      tags:
+      - Notifications
   /projects:
     get:
       consumes:
@@ -1412,7 +1505,7 @@ paths:
       summary: List all employees
       tags:
       - Users
-  /users/{id}:
+  /users/{targetid}:
     get:
       consumes:
       - application/json

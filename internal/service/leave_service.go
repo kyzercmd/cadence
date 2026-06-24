@@ -16,11 +16,13 @@ type LeaveService interface {
 }
 
 type leaveService struct {
-	repo repository.LeaveRepository
+	repo     repository.LeaveRepository
+	notif    NotificationService
+	userRepo repository.UserRepository
 }
 
-func NewLeaveService(r repository.LeaveRepository) LeaveService {
-	return &leaveService{repo: r}
+func NewLeaveService(r repository.LeaveRepository, n NotificationService, u repository.UserRepository) LeaveService {
+	return &leaveService{repo: r, notif: n, userRepo: u}
 }
 
 func (s *leaveService) CreateLeaveRequest(ctx context.Context, userID string, payload *models.CreateLeavePayload) (string, error) {
@@ -30,6 +32,19 @@ func (s *leaveService) CreateLeaveRequest(ctx context.Context, userID string, pa
 
 	if payload.Type != models.LeaveTypeSick && payload.Type != models.LeaveTypeVacation && payload.Type != models.LeaveTypeRemote {
 		return "", models.ErrInvalidLeaveType
+	}
+
+	IDs, err := s.userRepo.GetHRAndAdminIDs(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	for _, id := range IDs {
+		s.notif.CreateNotification(ctx, &models.CreateNotificationPayload{
+			UserID: id,
+			Title:  "New Leave Request Pending",
+			Body:   "A new leave request has been submitted and requires review.",
+		})
 	}
 
 	return s.repo.CreateLeaveRequest(ctx, userID, payload)
@@ -51,6 +66,24 @@ func (s *leaveService) ReviewLeaveRequest(ctx context.Context, leaveID string, r
 	if payload.Status != models.LeaveStatusApproved && payload.Status != models.LeaveStatusRejected {
 		return models.ErrInvalidLeaveStatus
 	}
+	employeeID, err := s.repo.ReviewLeaveRequest(ctx, leaveID, reviewerID, payload)
+	if err != nil {
+		return err
+	}
 
-	return s.repo.ReviewLeaveRequest(ctx, leaveID, reviewerID, payload)
+	switch payload.Status {
+	case models.LeaveStatusApproved:
+		s.notif.CreateNotification(ctx, &models.CreateNotificationPayload{
+			UserID: employeeID,
+			Title:  "Leave Approved",
+			Body:   "Your leave request has been approved.",
+		})
+	case models.LeaveStatusRejected:
+		s.notif.CreateNotification(ctx, &models.CreateNotificationPayload{
+			UserID: employeeID,
+			Title:  "Leave Rejected",
+			Body:   "Your leave request has been rejected.",
+		})
+	}
+	return nil
 }

@@ -14,6 +14,7 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	UpdateUser(ctx context.Context, user *models.User) error
 	GetAllUsers(ctx context.Context) ([]*models.UserListResponse, error)
+	GetHRAndAdminIDs(ctx context.Context) ([]string, error)
 }
 
 type postgresUserRepository struct {
@@ -121,4 +122,34 @@ func (r *postgresUserRepository) GetAllUsers(ctx context.Context) ([]*models.Use
 	}
 
 	return users, nil
+}
+
+func (r *postgresUserRepository) GetHRAndAdminIDs(ctx context.Context) ([]string, error) {
+	query := `
+			SELECT id FROM users WHERE role IN ('hr', 'admin') AND active = true
+			`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	var IDs = make([]string, 0)
+
+	for rows.Next() {
+		var id string
+
+		err := rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+
+		IDs = append(IDs, id)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return IDs, nil
 }

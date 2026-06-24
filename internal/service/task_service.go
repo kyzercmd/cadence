@@ -18,11 +18,12 @@ type TaskService interface {
 }
 
 type taskService struct {
-	repo repository.TaskRepository
+	repo  repository.TaskRepository
+	notif NotificationService
 }
 
-func NewTaskService(repo repository.TaskRepository) TaskService {
-	return &taskService{repo: repo}
+func NewTaskService(repo repository.TaskRepository, notif NotificationService) TaskService {
+	return &taskService{repo: repo, notif: notif}
 }
 
 func (s *taskService) GetMyTasks(ctx context.Context, userID string) ([]*models.MyTaskResponse, error) {
@@ -45,6 +46,14 @@ func (s *taskService) CreateTask(ctx context.Context, projectID string, payload 
 	taskID, err := s.repo.CreateTaskWithAssignees(ctx, projectID, payload)
 	if err != nil {
 		return "", err
+	}
+
+	for _, assigneeID := range payload.AssigneeIDs {
+		s.notif.CreateNotification(ctx, &models.CreateNotificationPayload{
+			UserID: assigneeID,
+			Title:  "New Task Assigned",
+			Body:   "You have been assigned to a new task: " + payload.Name + " with " + string(payload.Priority) + " Priority",
+		})
 	}
 
 	return taskID, nil

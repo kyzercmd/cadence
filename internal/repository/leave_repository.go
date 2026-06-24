@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kyzercmd/cadence/internal/models"
 )
@@ -12,7 +14,7 @@ type LeaveRepository interface {
 	GetMyLeaveRequests(ctx context.Context, userID string) ([]*models.LeaveRequest, error)
 	GetPendingLeaveRequests(ctx context.Context) ([]*models.LeaveRequestWithUser, error)
 	GetAllLeaveRequests(ctx context.Context) ([]*models.LeaveRequestWithUser, error)
-	ReviewLeaveRequest(ctx context.Context, leaveID string, reviewerID string, payload *models.ReviewLeavePayload) error
+	ReviewLeaveRequest(ctx context.Context, leaveID string, reviewerID string, payload *models.ReviewLeavePayload) (string, error)
 }
 
 type postgresLeaveRepository struct {
@@ -138,20 +140,21 @@ func (r *postgresLeaveRepository) GetAllLeaveRequests(ctx context.Context) ([]*m
 	return lr, nil
 }
 
-func (r *postgresLeaveRepository) ReviewLeaveRequest(ctx context.Context, leaveID string, reviewerID string, payload *models.ReviewLeavePayload) error {
+func (r *postgresLeaveRepository) ReviewLeaveRequest(ctx context.Context, leaveID string, reviewerID string, payload *models.ReviewLeavePayload) (string, error) {
 	query := `
 			UPDATE leave_requests
 			SET status = $1, reviewer_id = $2, reviewer_comment = $3
 			WHERE id = $4
+			RETURNING user_id
 			`
-	result, err := r.db.Exec(ctx, query, payload.Status, reviewerID, payload.ReviewerComment, leaveID)
+	var employeeID string
+	err := r.db.QueryRow(ctx, query, payload.Status, reviewerID, payload.ReviewerComment, leaveID).Scan(&employeeID)
 	if err != nil {
-		return err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", models.ErrLeaveRequestNotFound
+		}
+		return "", err
 	}
 
-	if result.RowsAffected() == 0 {
-		return models.ErrLeaveRequestNotFound
-	}
-
-	return nil
+	return employeeID, nil
 }
