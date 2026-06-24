@@ -10,3 +10,9 @@ type Notification struct {
 	CreatedAt time.Time `json:"createdAt"`
 	Read      bool      `json:"read"`
 }
+
+type CreateNotificationPayload struct {
+	UserID string
+	Title  string
+	Body   string
+}

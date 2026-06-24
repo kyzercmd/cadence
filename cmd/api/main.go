@@ -37,6 +37,7 @@ func main() {
 	projectRepo := repository.NewProjectRepository(cfg.DB)
 	attendanceRepo := repository.NewAttendanceRepository(cfg.DB)
 	leaveRepo := repository.NewLeaveRepository(cfg.DB)
+	notificationRepo := repository.NewNotificationRepository(cfg.DB)
 
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	userService := service.NewUserService(userRepo)
@@ -44,6 +45,7 @@ func main() {
 	projectService := service.NewProjectService(projectRepo)
 	attendanceService := service.NewAttendanceService(attendanceRepo)
 	leaveService := service.NewLeaveService(leaveRepo)
+	notificationService := service.NewNotificationService(notificationRepo)
 	StorageService := service.NewSupabaseStorageService(cfg.SupabaseURL, cfg.SupabaseKey, cfg.BucketName)
 
 	err := authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
@@ -52,13 +54,14 @@ func main() {
 	}
 
 	appHandlers := router.Handlers{
-		Auth:       handler.NewAuthHandler(authService),
-		User:       handler.NewUserHandler(userService),
-		Task:       handler.NewTaskHandler(taskService),
-		Project:    handler.NewProjectHandler(projectService),
-		Attendance: handler.NewAttendanceHandler(attendanceService),
-		Leave:      handler.NewLeaveHandler(leaveService),
-		Storage:    handler.NewStorageHandler(StorageService),
+		Auth:         handler.NewAuthHandler(authService),
+		User:         handler.NewUserHandler(userService),
+		Task:         handler.NewTaskHandler(taskService),
+		Project:      handler.NewProjectHandler(projectService),
+		Attendance:   handler.NewAttendanceHandler(attendanceService),
+		Leave:        handler.NewLeaveHandler(leaveService),
+		Notification: handler.NewNotificationHandler(notificationService),
+		Storage:      handler.NewStorageHandler(StorageService),
 	}
 
 	appMws := router.Middlewares{

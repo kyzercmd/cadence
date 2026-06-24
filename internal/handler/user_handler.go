@@ -126,7 +126,7 @@ func (h *UserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {string}  string "Invalid request body"
 // @Failure      500  {string}  string "Failed to update employee"
 // @Security     BearerAuth
-// @Router       /users/{id} [patch]
+// @Router       /users/{targetid} [patch]
 func (h *UserHandler) HRUpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	targetID := r.PathValue("targetid")
 
@@ -174,7 +174,7 @@ func (h *UserHandler) HRUpdateEmployee(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {string}  string "Invalid request body"
 // @Failure      500  {string}  string "Failed to update employee"
 // @Security     BearerAuth
-// @Router       /admin/users/{id} [patch]
+// @Router       /admin/users/{targetid} [patch]
 func (h *UserHandler) AdminUpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("targetid")
 
@@ -254,7 +254,7 @@ func (h *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
 // @Failure      404  {string}  string "User not found"
 // @Failure      500  {string}  string "Failed to get user"
 // @Security     BearerAuth
-// @Router       /users/{id} [get]
+// @Router       /users/{targetid} [get]
 func (h *UserHandler) GetEmployee(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("targetid")
 

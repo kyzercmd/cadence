@@ -12,13 +12,14 @@ import (
 )
 
 type Handlers struct {
-	Auth       *handler.AuthHandler
-	User       *handler.UserHandler
-	Task       *handler.TaskHandler
-	Project    *handler.ProjectHandler
-	Attendance *handler.AttendanceHandler
-	Leave      *handler.LeaveHandler
-	Storage    *handler.StorageHandler
+	Auth         *handler.AuthHandler
+	User         *handler.UserHandler
+	Task         *handler.TaskHandler
+	Project      *handler.ProjectHandler
+	Attendance   *handler.AttendanceHandler
+	Leave        *handler.LeaveHandler
+	Notification *handler.NotificationHandler
+	Storage      *handler.StorageHandler
 }
 
 type Middlewares struct {
@@ -71,6 +72,8 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("PATCH /api/tasks/{taskid}/status", protectedChain.ThenFunc(h.Task.UpdateTaskStatus))
 	mux.Handle("PATCH /api/tasks/{taskid}/time", protectedChain.ThenFunc(h.Task.LogTime))
 	mux.Handle("PATCH /api/leave/{leaveid}/review", HRChain.ThenFunc(h.Leave.ReviewLeave))
+	mux.Handle("PATCH /api/notifications/{notifid}/read", protectedChain.ThenFunc(h.Notification.MarkAsRead))
+	mux.Handle("PATCH /api/notifications/read-all", protectedChain.ThenFunc(h.Notification.MarkAllAsRead))
 
 	mux.Handle("PUT /api/tasks/{taskid}", protectedChain.ThenFunc(h.Task.UpdateTask))
 
@@ -88,5 +91,6 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("GET /api/leave/me", protectedChain.ThenFunc(h.Leave.GetMyLeaves))
 	mux.Handle("GET /api/leave/pending", HRChain.ThenFunc(h.Leave.GetPendingLeaves))
 	mux.Handle("GET /api/leave/all", HRChain.ThenFunc(h.Leave.GetAllLeaves))
+	mux.Handle("GET /api/notifications", protectedChain.ThenFunc(h.Notification.GetMyNotifications))
 
 }

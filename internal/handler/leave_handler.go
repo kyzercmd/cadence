@@ -135,7 +135,7 @@ func (h *LeaveHandler) GetAllLeaves(w http.ResponseWriter, r *http.Request) {
 // @Failure      403  {string}  string "Forbidden"
 // @Failure      500  {string}  string "Internal server error"
 // @Security     BearerAuth
-// @Router       /leave/{id}/review [patch]
+// @Router       /leave/{leaveid}/review [patch]
 func (h *LeaveHandler) ReviewLeave(w http.ResponseWriter, r *http.Request) {
 	leaveID := r.PathValue("leaveid")
 	reviewerID := r.Context().Value(middleware.UserIDkey).(string)
