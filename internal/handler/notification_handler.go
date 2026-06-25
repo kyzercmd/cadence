@@ -54,7 +54,7 @@ func (h *NotificationHandler) GetMyNotifications(w http.ResponseWriter, r *http.
 // @Tags         Notifications
 // @Accept       json
 // @Produce      json
-// @Param        id   path      string true "Notification ID"
+// @Param        notifid   path      string true "Notification ID"
 // @Success      200  {object}  map[string]interface{} "Successfully marked as read"
 // @Failure      500  {string}  string "Internal server error"
 // @Security     BearerAuth

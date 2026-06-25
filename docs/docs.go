@@ -98,7 +98,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Employee User ID",
-                        "name": "id",
+                        "name": "targetid",
                         "in": "path",
                         "required": true
                     },
@@ -719,7 +719,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Leave Request ID",
-                        "name": "id",
+                        "name": "leaveid",
                         "in": "path",
                         "required": true
                     },
@@ -870,7 +870,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Notification ID",
-                        "name": "id",
+                        "name": "notifid",
                         "in": "path",
                         "required": true
                     }
@@ -984,6 +984,61 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Failed to create project",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/projects/{projectid}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches the details of a single project by its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get project details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project details",
+                        "schema": {
+                            "$ref": "#/definitions/models.GetProjectResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Project not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch project",
                         "schema": {
                             "type": "string"
                         }
@@ -1630,7 +1685,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Employee User ID",
-                        "name": "id",
+                        "name": "targetid",
                         "in": "path",
                         "required": true
                     }
@@ -1689,7 +1744,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Employee User ID",
-                        "name": "id",
+                        "name": "targetid",
                         "in": "path",
                         "required": true
                     },

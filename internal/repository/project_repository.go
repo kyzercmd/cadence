@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,7 +13,8 @@ import (
 type ProjectRepository interface {
 	CreateProject(ctx context.Context, payload *models.CreateProjectPayload) (string, error)
 	GetAllProjects(ctx context.Context) ([]*models.GetProjectResponse, error)
-	GetProjectByID(ctx context.Context, userID string) ([]*models.GetProjectResponse, error)
+	GetProjectByUserID(ctx context.Context, userID string) ([]*models.GetProjectResponse, error)
+	GetProjectByID(ctx context.Context, projectID string) (*models.GetProjectResponse, error)
 }
 
 type postgresProjectRepository struct {
@@ -106,7 +108,7 @@ func (r *postgresProjectRepository) GetAllProjects(ctx context.Context) ([]*mode
 	return projects, nil
 }
 
-func (r *postgresProjectRepository) GetProjectByID(ctx context.Context, userID string) ([]*models.GetProjectResponse, error) {
+func (r *postgresProjectRepository) GetProjectByUserID(ctx context.Context, userID string) ([]*models.GetProjectResponse, error) {
 	query := `
 			SELECT p.id, p.code, p.name, p.description, p.status, p.priority, p.created_at, p.start_date, p.deadline, p.image_url,
 			COALESCE(json_agg(pm_all.user_id) FILTER (WHERE pm_all.user_id IS NOT NULL), '[]')
@@ -146,4 +148,34 @@ func (r *postgresProjectRepository) GetProjectByID(ctx context.Context, userID s
 	}
 
 	return projects, nil
+}
+
+func (r *postgresProjectRepository) GetProjectByID(ctx context.Context, projectID string) (*models.GetProjectResponse, error) {
+	query := `
+		SELECT p.id, p.code, p.name, p.description, p.status, p.priority, p.created_at, p.start_date, p.deadline, p.image_url,
+		COALESCE(json_agg(pm_all.user_id) FILTER (WHERE pm_all.user_id IS NOT NULL), '[]') AS member_ids
+		FROM projects p
+		LEFT JOIN project_members pm_all ON p.id = pm_all.project_id
+		WHERE p.id = $1
+		GROUP BY p.id 
+	`
+	var p models.GetProjectResponse
+	var memberIDs []byte
+
+	err := r.db.QueryRow(ctx, query, projectID).Scan(
+		&p.ID, &p.Code, &p.Name, &p.Description, &p.Status, &p.Priority,
+		&p.CreatedAt, &p.StartDate, &p.Deadline, &p.ImageURL, &memberIDs,
+	)
+	if err != nil {
+		if errors.Is(err, models.ErrProjectNotFound) {
+			return nil, models.ErrProjectNotFound
+		}
+		return nil, err
+	}
+
+	if err = json.Unmarshal(memberIDs, &p.MemberIDs); err != nil {
+		return nil, err
+	}
+
+	return &p, nil
 }

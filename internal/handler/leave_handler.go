@@ -127,7 +127,7 @@ func (h *LeaveHandler) GetAllLeaves(w http.ResponseWriter, r *http.Request) {
 // @Tags         Leave
 // @Accept       json
 // @Produce      json
-// @Param        id      path string true "Leave Request ID"
+// @Param        leaveid      path string true "Leave Request ID"
 // @Param        payload body models.ReviewLeavePayload true "Approval or Rejection details"
 // @Success      200  {object}  map[string]interface{} "Leave request updated"
 // @Failure      400  {string}  string "Invalid payload"

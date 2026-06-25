@@ -84,6 +84,7 @@ func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("GET /api/projects/{projectid}/tasks", protectedChain.ThenFunc(h.Task.GetProjectTasks))
 	mux.Handle("GET /api/tasks/{taskid}", protectedChain.ThenFunc(h.Task.GetTaskDetails))
 	mux.Handle("GET /api/projects", protectedChain.ThenFunc(h.Project.GetProjects))
+	mux.Handle("GET /api/projects/{projectid}", protectedChain.ThenFunc(h.Project.GetProjectByID))
 	mux.Handle("GET /api/attendance/me", protectedChain.ThenFunc(h.Attendance.GetTodayAttendance))
 	mux.Handle("GET /api/attendance/history", protectedChain.ThenFunc(h.Attendance.GetMyHistory))
 	mux.Handle("GET /api/attendance/employees", HRChain.ThenFunc(h.Attendance.GetAllEmployeesAttendance))

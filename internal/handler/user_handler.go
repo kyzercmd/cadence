@@ -120,7 +120,7 @@ func (h *UserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
-// @Param        id   path      string  true  "Employee User ID"
+// @Param        targetid   path      string  true  "Employee User ID"
 // @Param        payload body models.HRUpdateEmployeePayload true "Employee update fields"
 // @Success      200  {object}  models.User "Updated user profile"
 // @Failure      400  {string}  string "Invalid request body"
@@ -168,7 +168,7 @@ func (h *UserHandler) HRUpdateEmployee(w http.ResponseWriter, r *http.Request) {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
-// @Param        id   path      string  true  "Employee User ID"
+// @Param        targetid   path      string  true  "Employee User ID"
 // @Param        payload body models.UserUpdatePayload true "Employee update fields"
 // @Success      200  {object}  models.User "Updated user profile"
 // @Failure      400  {string}  string "Invalid request body"
@@ -247,7 +247,7 @@ func (h *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
-// @Param        id   path      string  true  "Employee User ID"
+// @Param        targetid   path      string  true  "Employee User ID"
 // @Success      200  {object}  models.User "User profile data"
 // @Failure      401  {string}  string "Unauthorized"
 // @Failure      403  {string}  string "Forbidden"

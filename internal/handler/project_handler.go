@@ -98,3 +98,34 @@ func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(projects)
 }
+
+// GetProjectByID godoc
+// @Summary      Get project details
+// @Description  Fetches the details of a single project by its ID.
+// @Tags         Projects
+// @Accept       json
+// @Produce      json
+// @Param        projectid   path      string  true  "Project ID"
+// @Success      200  {object}  models.GetProjectResponse "Project details"
+// @Failure      401  {string}  string "Unauthorized"
+// @Failure      404  {string}  string "Project not found"
+// @Failure      500  {string}  string "Failed to fetch project"
+// @Security     BearerAuth
+// @Router       /projects/{projectid} [get]
+func (h *ProjectHandler) GetProjectByID(w http.ResponseWriter, r *http.Request) {
+	projectID := r.PathValue("projectid")
+
+	project, err := h.ProjectService.GetProjectByID(r.Context(), projectID)
+	if err != nil {
+		if errors.Is(err, models.ErrProjectNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		log.Printf("DEBUG: %v", err)
+		http.Error(w, "Failed to fetch project", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(project)
+}

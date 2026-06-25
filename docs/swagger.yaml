@@ -604,7 +604,7 @@ paths:
       parameters:
       - description: Employee User ID
         in: path
-        name: id
+        name: targetid
         required: true
         type: string
       - description: Employee update fields
@@ -923,7 +923,7 @@ paths:
       parameters:
       - description: Leave Request ID
         in: path
-        name: id
+        name: leaveid
         required: true
         type: string
       - description: Approval or Rejection details
@@ -1084,7 +1084,7 @@ paths:
       parameters:
       - description: Notification ID
         in: path
-        name: id
+        name: notifid
         required: true
         type: string
       produces:
@@ -1188,6 +1188,41 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a new project
+      tags:
+      - Projects
+  /projects/{projectid}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the details of a single project by its ID.
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project details
+          schema:
+            $ref: '#/definitions/models.GetProjectResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Project not found
+          schema:
+            type: string
+        "500":
+          description: Failed to fetch project
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get project details
       tags:
       - Projects
   /projects/{projectid}/tasks:
@@ -1514,7 +1549,7 @@ paths:
       parameters:
       - description: Employee User ID
         in: path
-        name: id
+        name: targetid
         required: true
         type: string
       produces:
@@ -1553,7 +1588,7 @@ paths:
       parameters:
       - description: Employee User ID
         in: path
-        name: id
+        name: targetid
         required: true
         type: string
       - description: Employee update fields
