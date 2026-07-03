@@ -14,7 +14,7 @@ import (
 	"github.com/kyzercmd/cadence/internal/service"
 )
 
-// @title           HRMS API
+// @title           Cadence API
 // @version         1.0
 // @description     This is the core backend API.
 // @termsOfService  http://swagger.io/terms/
@@ -46,9 +46,12 @@ func main() {
 	projectService := service.NewProjectService(projectRepo)
 	attendanceService := service.NewAttendanceService(attendanceRepo)
 	leaveService := service.NewLeaveService(leaveRepo, notificationService, userRepo)
-	StorageService := service.NewSupabaseStorageService(cfg.SupabaseURL, cfg.SupabaseKey, cfg.BucketName)
+	StorageService, err := service.NewR2StorageService(cfg.R2AccountID, cfg.R2AccessKey, cfg.R2SecretKey, cfg.R2BucketName, cfg.R2PublicURL)
+	if err != nil {
+		log.Fatalf("Failed to create Storage Service: %v", err)
+	}
 
-	err := authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
+	err = authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
 	if err != nil {
 		log.Fatalf("Failed to seed admin: %v", err)
 	}

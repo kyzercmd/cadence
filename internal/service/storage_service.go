@@ -3,63 +3,67 @@ package service
 import (
 	"context"
 	"fmt"
-	"io"
 	"mime/multipart"
-	"net/http"
 	"path/filepath"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type StorageService interface {
 	UploadFile(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error)
 }
 
-type supabaseStorageService struct {
-	projectURL     string
-	serviceRoleKey string
-	bucketName     string
+type r2StorageService struct {
+	client     *s3.Client
+	bucketName string
+	publicURL  string
 }
 
-func NewSupabaseStorageService(projectURL, serviceRoleKey, bucketName string) StorageService {
-	return &supabaseStorageService{
-		projectURL:     projectURL,
-		serviceRoleKey: serviceRoleKey,
-		bucketName:     bucketName,
+func NewR2StorageService(accountID, accessKey, secretKey, bucketName, publicURL string) (StorageService, error) {
+	r2Endpoint := fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID)
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
+		config.WithRegion("auto"))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load r2 config : %w", err)
 	}
+
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(r2Endpoint)
+	})
+
+	return &r2StorageService{
+		client:     client,
+		bucketName: bucketName,
+		publicURL:  publicURL,
+	}, nil
 }
 
-func (s *supabaseStorageService) UploadFile(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
+func (s *r2StorageService) UploadFile(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
 	ext := filepath.Ext(header.Filename)
 	uniqueFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-
-	uploadURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.projectURL, s.bucketName, uniqueFilename)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, file)
-	if err != nil {
-		return "", fmt.Errorf("failed to create upload request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
 
 	contentType := header.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
-	req.Header.Set("Content-Type", contentType)
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucketName),
+		Key:         aws.String(uniqueFilename),
+		Body:        file,
+		ContentType: aws.String(contentType),
+	})
 	if err != nil {
-		return "", fmt.Errorf("failed to execute upload request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("supabase upload failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		return "", fmt.Errorf("Failed to upload to R2: %w", err)
 	}
 
-	publicURL := fmt.Sprintf("%s/storage/v1/object/public/%s/%s", s.projectURL, s.bucketName, uniqueFilename)
+	publicURL := fmt.Sprintf("%s/%s", s.publicURL, uniqueFilename)
 
 	return publicURL, nil
 }

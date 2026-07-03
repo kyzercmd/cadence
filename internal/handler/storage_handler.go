@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/kyzercmd/cadence/internal/service"
@@ -33,9 +32,10 @@ type UploadResponse struct {
 // @Security     BearerAuth
 // @Router       /upload [post]
 func (h *StorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		http.Error(w, "File too large. Maximum size is 10MB", http.StatusBadRequest)
+		http.Error(w, "File too large. Maximum size is 10MB", http.StatusRequestEntityTooLarge)
 		return
 	}
 
@@ -48,7 +48,6 @@ func (h *StorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	fileURL, err := h.StorageService.UploadFile(r.Context(), file, header)
 	if err != nil {
-		log.Printf("DEBUG: %v", err)
 		http.Error(w, "Failed to upload file to cloud", http.StatusInternalServerError)
 		return
 	}

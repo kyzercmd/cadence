@@ -16,9 +16,11 @@ type Config struct {
 	JWTSecret     string
 	AdminEmail    string
 	AdminPassword string
-	SupabaseURL   string
-	SupabaseKey   string
-	BucketName    string
+	R2AccountID   string
+	R2AccessKey   string
+	R2SecretKey   string
+	R2BucketName  string
+	R2PublicURL   string
 }
 
 func LoadConfig() *Config {
@@ -56,8 +58,10 @@ func LoadConfig() *Config {
 		JWTSecret:     os.Getenv("JWTSecret"),
 		AdminEmail:    os.Getenv("ADMIN_EMAIL"),
 		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
-		SupabaseURL:   os.Getenv("SUPABASE_URL"),
-		SupabaseKey:   os.Getenv("SUPABASE_KEY"),
-		BucketName:    os.Getenv("BUCKET_NAME"),
+		R2AccountID:   os.Getenv("R2_ACCOUNT_ID"),
+		R2AccessKey:   os.Getenv("R2_ACCESS_KEY"),
+		R2SecretKey:   os.Getenv("R2_SECRET_KEY"),
+		R2BucketName:  os.Getenv("R2_BUCKET_NAME"),
+		R2PublicURL:   os.Getenv("R2_PUBLIC_URL"),
 	}
 }
