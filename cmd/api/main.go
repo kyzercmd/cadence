@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/kyzercmd/cadence/internal/config"
 	"github.com/kyzercmd/cadence/internal/handler"
@@ -78,9 +82,30 @@ func main() {
 		port = "4000"
 	}
 
-	log.Printf("Starting server on port: %v", port)
-	err = http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
-	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%v", port),
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 20 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	go func() {
+		log.Printf("Listening on port: %v", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Stopped listening: %v\n", err)
+		}
+	}()
+
+	shutdown, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stop()
+	<-shutdown.Done()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	log.Printf("Shutting down server")
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Shutdown with error: %v", err)
 	}
 }
