@@ -8,6 +8,7 @@ import (
 	_ "github.com/kyzercmd/cadence/docs"
 	"github.com/kyzercmd/cadence/internal/handler"
 	"github.com/kyzercmd/cadence/internal/middleware"
+	"github.com/kyzercmd/cadence/internal/models"
 	"github.com/rs/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -32,8 +33,7 @@ func SetupRoutes(h Handlers, m Middlewares) http.Handler {
 
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	mapAuthRoutes(mux, h, m)
-	mapUserRoutes(mux, h, m)
+	mapRoutes(mux, h, m)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{os.Getenv("FRONTEND_URL")},
@@ -43,20 +43,19 @@ func SetupRoutes(h Handlers, m Middlewares) http.Handler {
 		Debug:            false,
 	})
 
-	handler := c.Handler(mux)
+	globalChain := alice.New(middleware.RecoverPanic, middleware.CommonHeaders, c.Handler)
 
-	return handler
+	return globalChain.Then(mux)
 }
 
-func mapAuthRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
+func mapRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
+	protectedChain := alice.New(m.Auth.RequireAuth)
+	HRChain := protectedChain.Append(middleware.RequireRole(models.RoleHR, models.RoleAdmin))
+	AdminChain := protectedChain.Append(middleware.RequireRole(models.RoleAdmin))
+
+	//Auths
 	mux.HandleFunc("POST /api/auth/login", h.Auth.Login)
 	mux.HandleFunc("POST /api/auth/refresh", h.Auth.Refresh)
-}
-
-func mapUserRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
-	protectedChain := alice.New(m.Auth.RequireAuth)
-	HRChain := protectedChain.Append(middleware.RequireRole("hr", "admin"))
-	AdminChain := protectedChain.Append(middleware.RequireRole("admin"))
 
 	//User & Employee
 	mux.Handle("GET /api/users/me", protectedChain.ThenFunc(h.User.GetSelf))
