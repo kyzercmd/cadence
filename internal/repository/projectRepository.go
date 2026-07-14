@@ -15,6 +15,7 @@ type ProjectRepository interface {
 	GetAllProjects(ctx context.Context) ([]*models.GetProjectResponse, error)
 	GetProjectByUserID(ctx context.Context, userID string) ([]*models.GetProjectResponse, error)
 	GetProjectByID(ctx context.Context, projectID string) (*models.GetProjectResponse, error)
+	SearchProjects(ctx context.Context, query string, userID string, role models.Role) ([]*models.Project, error)
 }
 
 type postgresProjectRepository struct {
@@ -178,4 +179,50 @@ func (r *postgresProjectRepository) GetProjectByID(ctx context.Context, projectI
 	}
 
 	return &p, nil
+}
+
+func (r *postgresProjectRepository) SearchProjects(ctx context.Context, query string, userID string, role models.Role) ([]*models.Project, error) {
+	var stmt string
+	var args []any
+
+	if role == models.RoleAdmin || role == models.RoleHR {
+		stmt = `
+				SELECT id, name, status
+				FROM projects
+				WHERE name ILIKE '%' || $1 || '%'
+				LIMIT 5
+				`
+		args = []any{query}
+	} else {
+		stmt = `
+			   	SELECT p.id, p.name, p.status
+				FROM projects p
+				JOIN project_members pm ON p.id = pm.project_id
+				WHERE p.name ILIKE '%' || $1 || '%' AND pm.user_id = $2
+				LIMIT 5
+				`
+		args = []any{query, userID}
+	}
+
+	rows, err := r.db.Query(ctx, stmt, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var projects []*models.Project
+	for rows.Next() {
+		var p models.Project
+
+		if err := rows.Scan(&p.ID, &p.Name, &p.Status); err != nil {
+			return nil, err
+		}
+		projects = append(projects, &p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return projects, nil
 }

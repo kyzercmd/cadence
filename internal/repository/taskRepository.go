@@ -18,6 +18,7 @@ type TaskRepository interface {
 	GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error)
 	GetTaskByID(ctx context.Context, taskID string) (*models.TaskDetailResponse, error)
 	LogTime(ctx context.Context, taskID string, userID string, payload *models.LogTimePayload) error
+	SearchTasks(ctx context.Context, query string, userID string) ([]*models.Task, error)
 }
 
 type postgresTaskRepositoy struct {
@@ -255,4 +256,36 @@ func (r *postgresTaskRepositoy) LogTime(ctx context.Context, taskID string, user
 	}
 
 	return nil
+}
+
+func (r *postgresTaskRepositoy) SearchTasks(ctx context.Context, query string, userID string) ([]*models.Task, error) {
+	stmt := `
+			SELECT t.id, t.name, t.status
+			FROM tasks t
+			JOIN task_assignees ta ON t.id = ta.task_id
+			WHERE t.name ILIKE '%' || $1 || '%' AND ta.user_id = $2
+			LIMIT 5
+			`
+	rows, err := r.db.Query(ctx, stmt, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []*models.Task
+	for rows.Next() {
+		var t models.Task
+
+		if err := rows.Scan(&t.ID, &t.Name, &t.Status); err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, &t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
 }

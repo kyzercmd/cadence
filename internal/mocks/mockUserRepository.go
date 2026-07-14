@@ -33,3 +33,7 @@ func (m *MockUserRepository) GetAllUsers(ctx context.Context) ([]*models.UserLis
 func (m *MockUserRepository) GetHRAndAdminIDs(ctx context.Context) ([]string, error) {
 	return nil, nil
 }
+
+func (m *MockUserRepository) SearchUserByNameOrEmail(ctx context.Context, query string) ([]*models.User, error) {
+	return nil, nil
+}

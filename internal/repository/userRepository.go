@@ -10,6 +10,7 @@ import (
 
 type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
+	SearchUserByNameOrEmail(ctx context.Context, query string) ([]*models.User, error)
 	GetUserByID(ctx context.Context, ID string) (*models.User, error)
 	CreateUser(ctx context.Context, user *models.User) error
 	UpdateUser(ctx context.Context, user *models.User) error
@@ -152,4 +153,38 @@ func (r *postgresUserRepository) GetHRAndAdminIDs(ctx context.Context) ([]string
 	}
 
 	return IDs, nil
+}
+
+func (r *postgresUserRepository) SearchUserByNameOrEmail(ctx context.Context, query string) ([]*models.User, error) {
+	var users []*models.User
+
+	stmt := `
+			SELECT id, name, email
+			FROM users
+			WHERE (name ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%')
+			AND active = true
+			LIMIT 5
+			`
+	rows, err := r.db.Query(ctx, stmt, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var u models.User
+
+		err := rows.Scan(&u.ID, &u.Name, &u.Email)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, &u)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
