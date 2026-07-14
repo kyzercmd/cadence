@@ -57,6 +57,9 @@ func mapRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.HandleFunc("POST /api/auth/login", h.Auth.Login)
 	mux.HandleFunc("POST /api/auth/refresh", h.Auth.Refresh)
 
+	//Search
+	mux.Handle("GET /api/search", protectedChain.ThenFunc(h.User.GlobalSearch))
+
 	//User & Employee
 	mux.Handle("GET /api/users/me", protectedChain.ThenFunc(h.User.GetSelf))
 	mux.Handle("PATCH /api/users/me", protectedChain.ThenFunc(h.User.UpdateSelf))

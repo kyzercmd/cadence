@@ -11,11 +11,12 @@ import (
 )
 
 type UserHandler struct {
-	userService service.UserService
+	userService   service.UserService
+	searchService service.SearchService
 }
 
-func NewUserHandler(svc service.UserService) *UserHandler {
-	return &UserHandler{userService: svc}
+func NewUserHandler(svc service.UserService, searchSvc service.SearchService) *UserHandler {
+	return &UserHandler{userService: svc, searchService: searchSvc}
 }
 
 // CreateEmployee godoc
@@ -295,4 +296,41 @@ func (h *UserHandler) GetAllEmployee(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(users)
+}
+
+// GlobalSearch godoc
+// @Summary      Global Search (Command Palette)
+// @Description  Searches across Users, Projects, and Tasks concurrently based on the logged-in user's role.
+// @Tags         Search
+// @Accept       json
+// @Produce      json
+// @Param        q query string true "Search query string"
+// @Success      200  {array}   models.SearchResult "List of categorized search results"
+// @Failure      400  {string}  string "Missing search query"
+// @Failure      500  {string}  string "Internal server error"
+// @Security     BearerAuth
+// @Router       /search [get]
+func (h *UserHandler) GlobalSearch(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		http.Error(w, "Missing search query parameter 'q'", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value(middleware.UserIDkey).(string)
+	userRole := r.Context().Value(middleware.UserRoleKey).(models.Role)
+
+	results, err := h.searchService.GlobalSearch(r.Context(), query, userID, userRole)
+	if err != nil {
+		http.Error(w, "Failed to execute search", http.StatusInternalServerError)
+		return
+	}
+
+	if results == nil {
+		results = []models.SearchResult{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(results)
 }
