@@ -380,6 +380,19 @@ definitions:
     - RoleAdmin
     - RoleHR
     - RoleEmployee
+  models.SearchResult:
+    properties:
+      id:
+        type: string
+      subtitle:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+      url:
+        type: string
+    type: object
   models.TaskDetailResponse:
     properties:
       assignees:
@@ -556,7 +569,7 @@ info:
     name: API Support
   description: This is the core backend API.
   termsOfService: http://swagger.io/terms/
-  title: HRMS API
+  title: Cadence API
   version: "1.0"
 paths:
   /admin/employee:
@@ -1300,6 +1313,40 @@ paths:
       summary: Create a new task
       tags:
       - Tasks
+  /search:
+    get:
+      consumes:
+      - application/json
+      description: Searches across Users, Projects, and Tasks concurrently based on
+        the logged-in user's role.
+      parameters:
+      - description: Search query string
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of categorized search results
+          schema:
+            items:
+              $ref: '#/definitions/models.SearchResult'
+            type: array
+        "400":
+          description: Missing search query
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Global Search (Command Palette)
+      tags:
+      - Search
   /tasks/{taskid}:
     get:
       consumes:

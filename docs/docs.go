@@ -1161,6 +1161,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Searches across Users, Projects, and Tasks concurrently based on the logged-in user's role.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Search"
+                ],
+                "summary": "Global Search (Command Palette)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query string",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of categorized search results",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SearchResult"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing search query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/tasks/{taskid}": {
             "get": {
                 "security": [
@@ -2350,6 +2402,26 @@ const docTemplate = `{
                 "RoleEmployee"
             ]
         },
+        "models.SearchResult": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "subtitle": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "models.TaskDetailResponse": {
             "type": "object",
             "properties": {
@@ -2620,7 +2692,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:4000",
 	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "HRMS API",
+	Title:            "Cadence API",
 	Description:      "This is the core backend API.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
