@@ -438,6 +438,21 @@ definitions:
     - TaskStatusInProgress
     - TaskStatusInReview
     - TaskStatusDone
+  models.UpdateProjectPayload:
+    properties:
+      deadline:
+        type: string
+      description:
+        type: string
+      imageUrl:
+        type: string
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/models.Priority'
+      status:
+        $ref: '#/definitions/models.ProjectStatus'
+    type: object
   models.UpdateSelfPayload:
     properties:
       avatarURL:
@@ -1236,6 +1251,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Get project details
+      tags:
+      - Projects
+    put:
+      consumes:
+      - application/json
+      description: Fully updates a project's details by its ID using the provided
+        payload.
+      parameters:
+      - description: Project ID (UUID)
+        in: path
+        name: projectid
+        required: true
+        type: string
+      - description: Updated project details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateProjectPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Project updated successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            type: string
+        "500":
+          description: Failed to update project
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update an existing project
       tags:
       - Projects
   /projects/{projectid}/tasks:

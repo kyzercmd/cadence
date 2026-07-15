@@ -11,6 +11,7 @@ type ProjectService interface {
 	CreateProject(ctx context.Context, payload *models.CreateProjectPayload) (string, error)
 	GetProjects(ctx context.Context, userID string, userRole models.Role) ([]*models.GetProjectResponse, error)
 	GetProjectByID(ctx context.Context, projectID string) (*models.GetProjectResponse, error)
+	UpdateProjectByID(ctx context.Context, projectID string, payload *models.UpdateProjectPayload) error
 }
 
 type projectService struct {
@@ -39,4 +40,8 @@ func (s *projectService) GetProjects(ctx context.Context, userID string, userRol
 
 func (s *projectService) GetProjectByID(ctx context.Context, projectID string) (*models.GetProjectResponse, error) {
 	return s.repo.GetProjectByID(ctx, projectID)
+}
+
+func (s *projectService) UpdateProjectByID(ctx context.Context, projectID string, payload *models.UpdateProjectPayload) error {
+	return s.repo.UpdateProject(ctx, projectID, payload)
 }

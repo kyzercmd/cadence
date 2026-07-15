@@ -1044,6 +1044,65 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fully updates a project's details by its ID using the provided payload.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Update an existing project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID (UUID)",
+                        "name": "projectid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated project details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateProjectPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Project updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update project",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/projects/{projectid}/tasks": {
@@ -2486,6 +2545,29 @@ const docTemplate = `{
                 "TaskStatusInReview",
                 "TaskStatusDone"
             ]
+        },
+        "models.UpdateProjectPayload": {
+            "type": "object",
+            "properties": {
+                "deadline": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "$ref": "#/definitions/models.Priority"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.ProjectStatus"
+                }
+            }
         },
         "models.UpdateSelfPayload": {
             "type": "object",

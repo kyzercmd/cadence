@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/kyzercmd/cadence/internal/middleware"
@@ -89,7 +88,6 @@ func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 
 	projects, err := h.ProjectService.GetProjects(r.Context(), userID, userRole)
 	if err != nil {
-		log.Printf("DEBUG: %v", err)
 		http.Error(w, "Failed to fetch projects", http.StatusInternalServerError)
 		return
 	}
@@ -121,11 +119,48 @@ func (h *ProjectHandler) GetProjectByID(w http.ResponseWriter, r *http.Request) 
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		log.Printf("DEBUG: %v", err)
 		http.Error(w, "Failed to fetch project", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(project)
+}
+
+// UpdateProject godoc
+// @Summary      Update an existing project
+// @Description  Fully updates a project's details by its ID using the provided payload.
+// @Tags         Projects
+// @Accept       json
+// @Produce      json
+// @Param        projectid path string true "Project ID (UUID)"
+// @Param        payload body models.UpdateProjectPayload true "Updated project details"
+// @Success      200 {object} map[string]string "message: Project updated successfully"
+// @Failure      400 {string} string "Invalid payload"
+// @Failure      500 {string} string "Failed to update project"
+// @Security     BearerAuth
+// @Router       /projects/{projectid} [put]
+func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
+	projectID := r.PathValue("projectid")
+	var payload models.UpdateProjectPayload
+
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		http.Error(w, "Invalid payload", http.StatusBadRequest)
+		return
+	}
+
+	err = h.ProjectService.UpdateProjectByID(r.Context(), projectID, &payload)
+	if err != nil {
+		http.Error(w, "Failed to update project", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	response := map[string]any{
+		"message": "Project updated successfully",
+	}
+
+	json.NewEncoder(w).Encode(response)
 }

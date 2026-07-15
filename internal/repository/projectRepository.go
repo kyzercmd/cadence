@@ -15,6 +15,7 @@ type ProjectRepository interface {
 	GetAllProjects(ctx context.Context) ([]*models.GetProjectResponse, error)
 	GetProjectByUserID(ctx context.Context, userID string) ([]*models.GetProjectResponse, error)
 	GetProjectByID(ctx context.Context, projectID string) (*models.GetProjectResponse, error)
+	UpdateProject(ctx context.Context, projectID string, payload *models.UpdateProjectPayload) error
 	SearchProjects(ctx context.Context, query string, userID string, role models.Role) ([]*models.Project, error)
 }
 
@@ -67,6 +68,22 @@ func (r *postgresProjectRepository) CreateProject(ctx context.Context, payload *
 	}
 
 	return ProjectID, nil
+}
+
+func (r *postgresProjectRepository) UpdateProject(ctx context.Context, projectID string, payload *models.UpdateProjectPayload) error {
+	query := `
+			UPDATE projects SET name = $1, description = $2, status = $3, priority = $4, deadline = $5, image_url = $6 WHERE id = $7
+			`
+	row, err := r.db.Exec(ctx, query, payload.Name, payload.Description, payload.Status, payload.Priority, payload.Deadline, payload.ImageURL, projectID)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected := row.RowsAffected(); rowsAffected == 0 {
+		return models.ErrProjectNotFound
+	}
+
+	return nil
 }
 
 func (r *postgresProjectRepository) GetAllProjects(ctx context.Context) ([]*models.GetProjectResponse, error) {
