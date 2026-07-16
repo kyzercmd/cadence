@@ -2,14 +2,12 @@ package router
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/justinas/alice"
 	_ "github.com/kyzercmd/cadence/docs"
 	"github.com/kyzercmd/cadence/internal/handler"
 	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/kyzercmd/cadence/internal/models"
-	"github.com/rs/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -35,15 +33,7 @@ func SetupRoutes(h Handlers, m Middlewares) http.Handler {
 
 	mapRoutes(mux, h, m)
 
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{os.Getenv("FRONTEND_URL")},
-		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		AllowCredentials: true,
-		Debug:            false,
-	})
-
-	globalChain := alice.New(middleware.RecoverPanic, middleware.CommonHeaders, c.Handler)
+	globalChain := alice.New(middleware.RecoverPanic, middleware.EnableCORS, middleware.RateLimiter, middleware.LimitBodySize, middleware.CommonHeaders)
 
 	return globalChain.Then(mux)
 }
