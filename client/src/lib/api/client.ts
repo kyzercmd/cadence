@@ -81,12 +81,17 @@ async function doRefresh(): Promise<string> {
   if (!rt) throw new Error("No refresh token");
 
   const url = new URL("/api/auth/refresh", BASE_URL);
-  const res = await fetch(url.toString(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    // NOTE: backend RefreshPayload json tag is "refreshtoken" (lowercase, no camel)
-    body: JSON.stringify({ refreshtoken: rt }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // NOTE: backend RefreshPayload json tag is "refreshtoken" (lowercase, no camel)
+      body: JSON.stringify({ refreshtoken: rt }),
+    });
+  } catch (err) {
+    throw new Error("Network error: Unable to connect to the server.");
+  }
 
   if (!res.ok) throw new Error("Refresh failed");
 
@@ -123,14 +128,19 @@ async function request<T>(req: ApiRequest, isRetry = false): Promise<T> {
     }
   }
 
-  const res = await fetch(url.toString(), {
-    method: req.method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-    body: req.body ? JSON.stringify(req.body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      method: req.method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      body: req.body ? JSON.stringify(req.body) : undefined,
+    });
+  } catch (err) {
+    throw new Error("Network error: Unable to connect to the server.");
+  }
 
   // ── 401 handling ─────────────────────────────────────────────────────────
   // Skip refresh logic for auth endpoints — a 401 there means bad credentials,
@@ -157,6 +167,9 @@ async function request<T>(req: ApiRequest, isRetry = false): Promise<T> {
     } catch (err) {
       rejectSubscribers(err);
       isRefreshing = false;
+      if (err instanceof Error && err.message.includes("Network error")) {
+        throw err;
+      }
       onAuthFailure?.();
       throw new Error("Session expired. Please log in again.");
     }

@@ -9,13 +9,24 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Chip, levelTone } from "@/components/ui/chip";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
@@ -32,7 +43,7 @@ function EmployeesPage() {
   const [levelFilter, setLevelFilter] = useState<Level | "all">("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  
+
   const [addOpen, setAddOpen] = useState(false);
 
   const canManage = hasRole("admin", "hr");
@@ -52,7 +63,11 @@ function EmployeesPage() {
     () =>
       users
         .filter((u) => {
-          if (search && !u.name.toLowerCase().includes(search.toLowerCase()) && !u.email.toLowerCase().includes(search.toLowerCase())) {
+          if (
+            search &&
+            !u.name.toLowerCase().includes(search.toLowerCase()) &&
+            !u.email.toLowerCase().includes(search.toLowerCase())
+          ) {
             return false;
           }
           if (levelFilter !== "all" && u.level?.toLowerCase() !== levelFilter.toLowerCase()) {
@@ -87,12 +102,21 @@ function EmployeesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="Search"
               className="h-10 rounded-full bg-card pl-9 pr-4 text-sm shadow-sm border border-transparent focus:outline-none focus:border-primary/40 w-40"
             />
           </div>
-          <Select value={levelFilter} onValueChange={(v) => { setLevelFilter(v as Level | "all"); setPage(1); }}>
+          <Select
+            value={levelFilter}
+            onValueChange={(v) => {
+              setLevelFilter(v as Level | "all");
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="h-10 rounded-full bg-card shadow-sm border-0 px-3 gap-1 w-[130px]">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <SelectValue />
@@ -133,10 +157,23 @@ function EmployeesPage() {
 
       <div className="flex items-center justify-end text-sm text-muted-foreground gap-3">
         <span>
-          {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+          {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-
+          {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
         </span>
-        <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1 rounded-full disabled:opacity-40 hover:bg-accent">←</button>
-        <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1 rounded-full disabled:opacity-40 hover:bg-accent">→</button>
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+          className="px-3 py-1 rounded-full disabled:opacity-40 hover:bg-accent"
+        >
+          ←
+        </button>
+        <button
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+          className="px-3 py-1 rounded-full disabled:opacity-40 hover:bg-accent"
+        >
+          →
+        </button>
       </div>
 
       {isAdmin && (
@@ -147,8 +184,14 @@ function EmployeesPage() {
 }
 
 function EmployeeRow({
-  user, onOpen, canDeactivate,
-}: { user: User; onOpen: () => void; canDeactivate: boolean }) {
+  user,
+  onOpen,
+  canDeactivate,
+}: {
+  user: User;
+  onOpen: () => void;
+  canDeactivate: boolean;
+}) {
   const qc = useQueryClient();
   const deactivate = useMutation({
     mutationFn: () => usersApi.deactivate(user.id),
@@ -168,7 +211,9 @@ function EmployeeRow({
           : "bg-card hover:bg-accent/30",
       )}
     >
-      <Avatar className={cn("h-11 w-11 shrink-0", isInactive && "ring-2 ring-destructive/60 opacity-80")}>
+      <Avatar
+        className={cn("h-11 w-11 shrink-0", isInactive && "ring-2 ring-destructive/60 opacity-80")}
+      >
         <AvatarImage src={user.avatarUrl} />
         <AvatarFallback>{user.name[0]}</AvatarFallback>
       </Avatar>
@@ -177,7 +222,9 @@ function EmployeeRow({
         <div className="font-medium truncate flex items-center gap-2">
           <span className={cn(isInactive && "text-muted-foreground")}>{user.name}</span>
           {isInactive && (
-            <Chip tone="destructive" className="shrink-0 text-[10px] px-2 py-0.5">Inactive</Chip>
+            <Chip tone="destructive" className="shrink-0 text-[10px] px-2 py-0.5">
+              Inactive
+            </Chip>
           )}
         </div>
         <div className="text-xs text-muted-foreground truncate">{user.email}</div>
@@ -192,7 +239,9 @@ function EmployeeRow({
         <div className="text-xs text-muted-foreground">Position</div>
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm truncate">{user.position}</span>
-          <Chip tone={levelTone(user.level)} className="shrink-0">{user.level}</Chip>
+          <Chip tone={levelTone(user.level)} className="shrink-0">
+            {user.level}
+          </Chip>
         </div>
       </div>
 
@@ -228,14 +277,27 @@ interface EmployeeDialogProps {
 function EmployeeDialog({ open, onOpenChange, mode, initial, isAdmin }: EmployeeDialogProps) {
   const qc = useQueryClient();
   const empty: Partial<User> & { password?: string } = {
-    name: "", email: "", position: "UI/UX Designer", level: "Junior",
-    gender: "Male", birthday: "1995-01-01", role: "employee",
-    mobile: "", skype: "", location: "NYC, New York, USA", password: "",
+    name: "",
+    email: "",
+    position: "UI/UX Designer",
+    level: "Junior",
+    gender: "Male",
+    birthday: "1995-01-01",
+    role: "employee",
+    mobile: "",
+    skype: "",
+    location: "NYC, New York, USA",
+    password: "",
   };
   const [form, setForm] = useState<Partial<User> & { password?: string }>(empty);
 
   useEffect(() => {
-    if (open) setForm(initial ? { ...initial, birthday: formatDateForInput(initial.birthday), password: "" } : empty);
+    if (open)
+      setForm(
+        initial
+          ? { ...initial, birthday: formatDateForInput(initial.birthday), password: "" }
+          : empty,
+      );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial]);
 
@@ -270,10 +332,23 @@ function EmployeeDialog({ open, onOpenChange, mode, initial, isAdmin }: Employee
           <DialogTitle>{mode === "create" ? "Add Employee" : "Edit Employee"}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1">
-          <Input label="Full name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <Input label="Email (login) *" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
           <Input
-            label={mode === "create" ? "Password *" : "New password (Optional - leave blank to keep)"}
+            label="Full name *"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+          />
+          <Input
+            label="Email (login) *"
+            type="email"
+            value={form.email}
+            onChange={(v) => setForm({ ...form, email: v })}
+          />
+          <Input
+            label={
+              mode === "create"
+                ? "Password (login) *"
+                : "New password (Optional - leave blank to keep)"
+            }
             type="text"
             value={form.password}
             onChange={(v) => setForm({ ...form, password: v })}
@@ -281,7 +356,9 @@ function EmployeeDialog({ open, onOpenChange, mode, initial, isAdmin }: Employee
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Role</label>
             <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as Role })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="employee">Employee</SelectItem>
                 <SelectItem value="hr">HR</SelectItem>
@@ -289,11 +366,20 @@ function EmployeeDialog({ open, onOpenChange, mode, initial, isAdmin }: Employee
               </SelectContent>
             </Select>
           </div>
-          <Input label="Position (Optional)" value={form.position} onChange={(v) => setForm({ ...form, position: v })} />
+          <Input
+            label="Position (Optional)"
+            value={form.position}
+            onChange={(v) => setForm({ ...form, position: v })}
+          />
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Level</label>
-            <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v as Level })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.level}
+              onValueChange={(v) => setForm({ ...form, level: v as Level })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Junior">Junior</SelectItem>
                 <SelectItem value="Middle">Middle</SelectItem>
@@ -303,23 +389,50 @@ function EmployeeDialog({ open, onOpenChange, mode, initial, isAdmin }: Employee
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Gender</label>
-            <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v as "Male" | "Female" })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.gender}
+              onValueChange={(v) => setForm({ ...form, gender: v as "Male" | "Female" })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Male">Male</SelectItem>
                 <SelectItem value="Female">Female</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Input label="Birthday (Optional)" type="date" value={form.birthday} onChange={(v) => setForm({ ...form, birthday: v })} />
-          <Input label="Mobile (Optional)" value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v })} />
-          <Input label="Skype (Optional)" value={form.skype} onChange={(v) => setForm({ ...form, skype: v })} />
-          <Input label="Location (Optional)" value={form.location} onChange={(v) => setForm({ ...form, location: v })} />
+          <Input
+            label="Birthday (Optional)"
+            type="date"
+            value={form.birthday}
+            onChange={(v) => setForm({ ...form, birthday: v })}
+          />
+          <Input
+            label="Mobile (Optional)"
+            value={form.mobile}
+            onChange={(v) => setForm({ ...form, mobile: v })}
+          />
+          <Input
+            label="Skype (Optional)"
+            value={form.skype}
+            onChange={(v) => setForm({ ...form, skype: v })}
+          />
+          <Input
+            label="Location (Optional)"
+            value={form.location}
+            onChange={(v) => setForm({ ...form, location: v })}
+          />
         </div>
         <DialogFooter>
           <button
             onClick={() => (mode === "create" ? create.mutate() : update.mutate())}
-            disabled={!form.name?.trim() || !form.email?.trim() || (mode === "create" && !form.password?.trim()) || (mode === "create" ? create.isPending : update.isPending)}
+            disabled={
+              !form.name?.trim() ||
+              !form.email?.trim() ||
+              (mode === "create" && !form.password?.trim()) ||
+              (mode === "create" ? create.isPending : update.isPending)
+            }
             className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
             {mode === "create" ? "Add Employee" : "Save changes"}
@@ -331,8 +444,16 @@ function EmployeeDialog({ open, onOpenChange, mode, initial, isAdmin }: Employee
 }
 
 function Input({
-  label, value, onChange, type = "text",
-}: { label: string; value: string | undefined; onChange: (v: string) => void; type?: string }) {
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
   return (
     <div className="space-y-1">
       <label className="text-xs text-muted-foreground">{label}</label>

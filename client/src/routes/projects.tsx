@@ -2,12 +2,32 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
-  useDraggable, useDroppable, type DragEndEvent, type DragStartEvent,
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
-  Plus, Filter, ChevronLeft, ChevronDown, Pencil, Image as ImageIcon, X, Paperclip, Link2,
-  Calendar as CalendarIcon, Clock, Check, Search, Users, Trash2,
+  Plus,
+  Filter,
+  ChevronLeft,
+  ChevronDown,
+  Pencil,
+  Image as ImageIcon,
+  X,
+  Paperclip,
+  Link2,
+  Calendar as CalendarIcon,
+  Clock,
+  Check,
+  Search,
+  Users,
+  Trash2,
 } from "lucide-react";
 import { safeFormat, isOverdue, formatDateForInput, normalizeExternalUrl } from "@/lib/utils";
 import { projectsApi } from "@/lib/api/projects.api";
@@ -18,18 +38,24 @@ import type { Priority, Project, Task, TaskStatus, User } from "@/lib/api/types"
 import { Chip, priorityTone } from "@/components/ui/chip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
@@ -111,15 +137,28 @@ function ProjectsPage() {
   const users = useMemo(() => {
     if (rawUsers.length > 0) return rawUsers;
     const map = new Map<string, any>();
-    if (user) map.set(user.id, { id: user.id, name: user.name, avatarUrl: user.avatarUrl, position: user.position || user.role, email: user.email });
+    if (user)
+      map.set(user.id, {
+        id: user.id,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        position: user.position || user.role,
+        email: user.email,
+      });
     for (const t of tasks) {
-      for (const a of (t.assignees || [])) {
+      for (const a of t.assignees || []) {
         if (!a.id) continue;
         if (!map.has(a.id)) {
-          map.set(a.id, { id: a.id, name: a.name || "Assigned", avatarUrl: a.avatarUrl || a.avatar_url, position: a.position || "" });
+          map.set(a.id, {
+            id: a.id,
+            name: a.name || "Assigned",
+            avatarUrl: a.avatarUrl || a.avatar_url,
+            position: a.position || "",
+          });
         } else {
           const cur = map.get(a.id);
-          if (!cur.avatarUrl && (a.avatarUrl || a.avatar_url)) cur.avatarUrl = a.avatarUrl || a.avatar_url;
+          if (!cur.avatarUrl && (a.avatarUrl || a.avatar_url))
+            cur.avatarUrl = a.avatarUrl || a.avatar_url;
         }
       }
     }
@@ -133,8 +172,8 @@ function ProjectsPage() {
       for (const id of selected.memberIds) validIds.add(id);
     }
     for (const t of tasks) {
-      for (const id of (t.assigneeIds || [])) validIds.add(id);
-      for (const a of (t.assignees || [])) if (a.id) validIds.add(a.id);
+      for (const id of t.assigneeIds || []) validIds.add(id);
+      for (const a of t.assignees || []) if (a.id) validIds.add(a.id);
     }
     if (user && validIds.size === 0) validIds.add(user.id);
 
@@ -153,8 +192,7 @@ function ProjectsPage() {
   }, [tasks, filterPriority, filterAssignee]);
 
   // (removed unused `now` variable)
-  const isBacklog = (t: Task) =>
-    !!t.dueDate && t.status !== "done" && isOverdue(t.dueDate);
+  const isBacklog = (t: Task) => !!t.dueDate && t.status !== "done" && isOverdue(t.dueDate);
 
   const byColumn = useMemo(() => {
     const map: Record<TaskStatus, Task[]> = { todo: [], in_progress: [], in_review: [], done: [] };
@@ -229,7 +267,9 @@ function ProjectsPage() {
               <span className="text-muted-foreground">/</span>
               <span>Task details</span>
             </span>
-          ) : "Projects"}
+          ) : (
+            "Projects"
+          )}
         </h1>
         <div className="flex items-center gap-2">
           {selected && (
@@ -240,7 +280,7 @@ function ProjectsPage() {
               <Plus className="h-4 w-4" /> Add Task
             </button>
           )}
-          {hasRole("admin") && (
+          {hasRole("admin", "hr") && (
             <button
               onClick={() => setAddProjectOpen(true)}
               className="inline-flex items-center gap-2 rounded-full bg-card text-foreground px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-accent"
@@ -259,13 +299,20 @@ function ProjectsPage() {
             const isSelected = selected?.id === p.id;
             const overdue = p.deadline && isOverdue(p.deadline) && p.status !== "completed";
             return (
-              <div key={p.id} className={`rounded-xl transition ${isSelected ? "bg-accent/60 ring-1 ring-primary/40" : "hover:bg-accent/40"}`}>
+              <div
+                key={p.id}
+                className={`rounded-xl transition ${isSelected ? "bg-accent/60 ring-1 ring-primary/40" : "hover:bg-accent/40"}`}
+              >
                 <button
                   onClick={() => setActiveId(p.id)}
                   className="w-full text-left px-3 py-3 flex items-center gap-2"
                 >
                   {p.imageUrl ? (
-                    <img src={p.imageUrl} alt="" className="h-8 w-8 rounded-lg object-cover shrink-0" />
+                    <img
+                      src={p.imageUrl}
+                      alt=""
+                      className="h-8 w-8 rounded-lg object-cover shrink-0"
+                    />
                   ) : (
                     <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <ImageIcon className="h-4 w-4" />
@@ -275,11 +322,15 @@ function ProjectsPage() {
                     <div className="text-[11px] text-muted-foreground truncate">{p.code}</div>
                     <div className="font-medium text-sm truncate">{p.name}</div>
                   </div>
-                  <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isSelected ? "rotate-180" : ""}`} />
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isSelected ? "rotate-180" : ""}`}
+                  />
                 </button>
                 {isSelected && (
                   <div className="px-3 pb-3 space-y-2">
-                    <div className="text-xs text-muted-foreground line-clamp-2">{p.description}</div>
+                    <div className="text-xs text-muted-foreground line-clamp-2">
+                      {p.description}
+                    </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Chip tone={priorityTone(p.priority)}>{p.priority}</Chip>
                       {p.status === "completed" && <Chip tone="success">completed</Chip>}
@@ -292,7 +343,9 @@ function ProjectsPage() {
                         </div>
                       )}
                       {p.deadline && (
-                        <div className={`flex items-center gap-1.5 ${overdue ? "text-destructive font-medium" : ""}`}>
+                        <div
+                          className={`flex items-center gap-1.5 ${overdue ? "text-destructive font-medium" : ""}`}
+                        >
                           <CalendarIcon className="h-3 w-3" />
                           <span>Deadline {safeFormat(p.deadline, "MMM d, yyyy")}</span>
                         </div>
@@ -308,28 +361,35 @@ function ProjectsPage() {
             );
           })}
           {projects.length === 0 && (
-            <div className="px-3 py-6 text-sm text-muted-foreground text-center">No projects yet.</div>
+            <div className="px-3 py-6 text-sm text-muted-foreground text-center">
+              No projects yet.
+            </div>
           )}
         </div>
 
         {/* Main area */}
         <div className="bg-card rounded-2xl p-4 shadow-sm">
           {!selected ? (
-            <div className="text-center py-12 text-muted-foreground text-sm">Select a project to view its board.</div>
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              Select a project to view its board.
+            </div>
           ) : selectedTask ? (
             <TaskDetails
               task={selectedTask}
               users={users}
               project={selected}
               onBack={() => setSelectedTaskId(null)}
-              
             />
           ) : (
             <>
               <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
                 <div className="flex items-center gap-3">
                   {selected.imageUrl && (
-                    <img src={selected.imageUrl} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                    <img
+                      src={selected.imageUrl}
+                      alt=""
+                      className="h-10 w-10 rounded-xl object-cover"
+                    />
                   )}
                   <div>
                     <div className="text-[11px] text-muted-foreground">{selected.code}</div>
@@ -339,11 +399,12 @@ function ProjectsPage() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                   {selected.deadline && (
                     <span className="flex items-center gap-1">
-                      <CalendarIcon className="h-3 w-3" /> Due {safeFormat(selected.deadline, "MMM d, yyyy")}
+                      <CalendarIcon className="h-3 w-3" /> Due{" "}
+                      {safeFormat(selected.deadline, "MMM d, yyyy")}
                     </span>
                   )}
                   <Chip tone={priorityTone(selected.priority)}>{selected.priority}</Chip>
-                  {hasRole("admin") && (
+                  {hasRole("admin", "hr") && (
                     <>
                       <button
                         onClick={() => setEditOpen((v) => !v)}
@@ -371,8 +432,13 @@ function ProjectsPage() {
                       <div className="text-sm font-semibold">Filter tasks</div>
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">Priority</label>
-                        <Select value={filterPriority} onValueChange={(v) => setFilterPriority(v as Priority | "all")}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                        <Select
+                          value={filterPriority}
+                          onValueChange={(v) => setFilterPriority(v as Priority | "all")}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All priorities</SelectItem>
                             <SelectItem value="low">Low</SelectItem>
@@ -384,17 +450,24 @@ function ProjectsPage() {
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">Assignee</label>
                         <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All assignees</SelectItem>
                             {projectFilterUsers.map((u) => (
-                              <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.name}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <button
-                        onClick={() => { setFilterPriority("all"); setFilterAssignee("all"); }}
+                        onClick={() => {
+                          setFilterPriority("all");
+                          setFilterAssignee("all");
+                        }}
                         className="w-full text-xs text-primary hover:underline"
                       >
                         Reset filters
@@ -404,7 +477,7 @@ function ProjectsPage() {
                 </div>
               </div>
 
-              {editOpen && hasRole("admin") && (
+              {editOpen && hasRole("admin", "hr") && (
                 <ProjectEditPanel
                   project={selected}
                   users={users}
@@ -416,7 +489,12 @@ function ProjectsPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
                     {COLUMNS.map((col) => (
-                      <ColumnHeader key={col.id} status={col.id} label={col.label} count={byColumn[col.id].length} />
+                      <ColumnHeader
+                        key={col.id}
+                        status={col.id}
+                        label={col.label}
+                        count={byColumn[col.id].length}
+                      />
                     ))}
                   </div>
 
@@ -446,7 +524,9 @@ function ProjectsPage() {
                   />
                 </div>
                 <DragOverlay>
-                  {activeTask ? <TaskCard task={activeTask} users={users} project={selected} dragging /> : null}
+                  {activeTask ? (
+                    <TaskCard task={activeTask} users={users} project={selected} dragging />
+                  ) : null}
                 </DragOverlay>
               </DndContext>
             </>
@@ -454,16 +534,17 @@ function ProjectsPage() {
         </div>
       </div>
 
-      {hasRole("admin") && (
+      {hasRole("admin", "hr") && (
         <AddProjectDialog open={addProjectOpen} onOpenChange={setAddProjectOpen} users={users} />
       )}
-      {hasRole("admin") && selected && (
+      {hasRole("admin", "hr") && selected && (
         <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete project?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete <span className="font-medium">{selected.name}</span> and all its tasks. This cannot be undone.
+                This will permanently delete <span className="font-medium">{selected.name}</span>{" "}
+                and all its tasks. This cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -490,7 +571,15 @@ function ProjectsPage() {
   );
 }
 
-function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Project; users?: User[]; onClose: () => void }) {
+function ProjectEditPanel({
+  project,
+  users: propUsers,
+  onClose,
+}: {
+  project: Project;
+  users?: User[];
+  onClose: () => void;
+}) {
   const { hasRole } = useAuth();
   const qc = useQueryClient();
   const { data: fetchedUsers = [] } = useQuery({
@@ -528,7 +617,11 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
   const save = useMutation({
     mutationFn: () =>
       projectsApi.update(project.id, {
-        name, code, description, priority, status,
+        name,
+        code,
+        description,
+        priority,
+        status,
         startDate: startDate || undefined,
         deadline: deadline || undefined,
         imageUrl,
@@ -545,7 +638,10 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
   async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be < 5 MB"); return; }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be < 5 MB");
+      return;
+    }
     setUploading(true);
     try {
       const { url } = await uploadApi.upload(file);
@@ -561,10 +657,7 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
     <div className="mb-4 rounded-2xl border border-border bg-card/70 p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-semibold">Edit project</div>
-        <button
-          onClick={onClose}
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
+        <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">
           Cancel
         </button>
       </div>
@@ -572,29 +665,45 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
         <div className="space-y-3">
           <div className="grid grid-cols-[1fr_160px] gap-3">
             <Field label="Project Name">
-              <input value={name} onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm"
+              />
             </Field>
             <Field label="Project Code">
-              <input value={code} onChange={(e) => setCode(e.target.value)}
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
                 disabled
-                className="w-full rounded-xl border border-input bg-accent/30 px-3 py-2 text-sm font-mono tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" />
+                className="w-full rounded-xl border border-input bg-accent/30 px-3 py-2 text-sm font-mono tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+              />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Start Date">
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm"
+              />
             </Field>
             <Field label="Deadline">
-              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
-                className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
+              <input
+                type="date"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm"
+              />
             </Field>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Priority">
               <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
@@ -604,7 +713,9 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
             </Field>
             <Field label="Status">
               <Select value={status} onValueChange={(v) => setStatus(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -626,9 +737,14 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
                     <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-72 p-3 space-y-2.5 shadow-xl rounded-2xl border bg-popover z-50" align="start">
+                <PopoverContent
+                  className="w-72 p-3 space-y-2.5 shadow-xl rounded-2xl border bg-popover z-50"
+                  align="start"
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-muted-foreground">Manage Project Members</span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Manage Project Members
+                    </span>
                     {selected.length > 0 && (
                       <button
                         type="button"
@@ -650,10 +766,11 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
                   </div>
                   <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
                     {users
-                      .filter((u) =>
-                        u.name.toLowerCase().includes(search.toLowerCase()) ||
-                        u.email.toLowerCase().includes(search.toLowerCase()) ||
-                        u.position.toLowerCase().includes(search.toLowerCase())
+                      .filter(
+                        (u) =>
+                          u.name.toLowerCase().includes(search.toLowerCase()) ||
+                          u.email.toLowerCase().includes(search.toLowerCase()) ||
+                          u.position.toLowerCase().includes(search.toLowerCase()),
                       )
                       .slice(0, 20)
                       .map((u) => {
@@ -662,15 +779,26 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
                           <button
                             type="button"
                             key={u.id}
-                            onClick={() => setSelected((p) => (p.includes(u.id) ? p.filter((x) => x !== u.id) : [...p, u.id]))}
+                            onClick={() =>
+                              setSelected((p) =>
+                                p.includes(u.id) ? p.filter((x) => x !== u.id) : [...p, u.id],
+                              )
+                            }
                             className={`w-full flex items-center gap-2 rounded-xl border p-2 text-left transition ${
-                              isSelected ? "border-primary bg-primary/10 text-foreground" : "border-transparent hover:bg-accent/50"
+                              isSelected
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-transparent hover:bg-accent/50"
                             }`}
                           >
-                            <Avatar className="h-6 w-6"><AvatarImage src={u.avatarUrl} /><AvatarFallback>{u.name[0]}</AvatarFallback></Avatar>
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={u.avatarUrl} />
+                              <AvatarFallback>{u.name[0]}</AvatarFallback>
+                            </Avatar>
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-medium truncate">{u.name}</div>
-                              <div className="text-[10px] text-muted-foreground truncate">{u.position}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                {u.position}
+                              </div>
                             </div>
                             {isSelected && (
                               <span className="h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
@@ -686,9 +814,12 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
             </Field>
           </div>
           <Field label="Description">
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
+              className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm"
+            />
           </Field>
         </div>
         <div className="space-y-2">
@@ -700,10 +831,17 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
           >
             {imageUrl ? (
               <>
-                <img src={imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); setImageUrl(undefined); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageUrl(undefined);
+                  }}
                   className="absolute top-2 right-2 rounded-full bg-card p-1 shadow"
                 >
                   <X className="h-3 w-3" />
@@ -736,8 +874,15 @@ function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Pro
   );
 }
 
-
-function ColumnHeader({ status, label, count }: { status: TaskStatus; label: string; count: number }) {
+function ColumnHeader({
+  status,
+  label,
+  count,
+}: {
+  status: TaskStatus;
+  label: string;
+  count: number;
+}) {
   const dotColor = {
     todo: "bg-muted-foreground/40",
     in_progress: "bg-primary",
@@ -755,7 +900,11 @@ function ColumnHeader({ status, label, count }: { status: TaskStatus; label: str
 }
 
 function Column({
-  status, tasks, users, onSelect, project,
+  status,
+  tasks,
+  users,
+  onSelect,
+  project,
 }: {
   status: TaskStatus;
   tasks: Task[];
@@ -790,8 +939,16 @@ function Column({
 }
 
 function BacklogSection({
-  tasks, users, onSelect, project,
-}: { tasks: Task[]; users: User[]; onSelect: (id: string) => void; project: Project }) {
+  tasks,
+  users,
+  onSelect,
+  project,
+}: {
+  tasks: Task[];
+  users: User[];
+  onSelect: (id: string) => void;
+  project: Project;
+}) {
   return (
     <div className="rounded-xl bg-accent/30 p-2">
       <div className="text-center text-xs font-semibold text-muted-foreground mb-3">
@@ -852,15 +1009,29 @@ function getAssigneeSpentHours(a: any, task: any, totalAssignees: number): numbe
     }
   }
   if (totalAssignees === 1 && task) {
-    const total = Number(task.spentHours ?? task.spent_hours ?? task.totalSpentHours ?? task.total_spent_hours ?? 0);
+    const total = Number(
+      task.spentHours ?? task.spent_hours ?? task.totalSpentHours ?? task.total_spent_hours ?? 0,
+    );
     if (!isNaN(total)) return total;
   }
   return 0;
 }
 
 function TaskCard({
-  task, users, project, dragging = false, onSelect, overdue,
-}: { task: Task; users: User[]; project: Project; dragging?: boolean; onSelect?: () => void; overdue?: boolean }) {
+  task,
+  users,
+  project,
+  dragging = false,
+  onSelect,
+  overdue,
+}: {
+  task: Task;
+  users: User[];
+  project: Project;
+  dragging?: boolean;
+  onSelect?: () => void;
+  overdue?: boolean;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
   const assignees = (
     task.assignees && task.assignees.length > 0
@@ -869,14 +1040,24 @@ function TaskCard({
           const sh = getAssigneeSpentHours(a, task, task.assignees!.length);
           return u
             ? { ...u, ...a, spentHours: sh, spent_hours: sh }
-            : { ...a, id: a.id, name: a.name, avatarUrl: a.avatarUrl || a.avatar_url, position: a.position, spentHours: sh, spent_hours: sh };
+            : {
+                ...a,
+                id: a.id,
+                name: a.name,
+                avatarUrl: a.avatarUrl || a.avatar_url,
+                position: a.position,
+                spentHours: sh,
+                spent_hours: sh,
+              };
         })
-      : (task.assigneeIds || []).map((id) => {
-          const u = users.find((u) => u.id === id);
-          if (!u) return null;
-          const sh = getAssigneeSpentHours(u, task, (task.assigneeIds || []).length);
-          return { ...u, spentHours: sh, spent_hours: sh };
-        }).filter(Boolean)
+      : (task.assigneeIds || [])
+          .map((id) => {
+            const u = users.find((u) => u.id === id);
+            if (!u) return null;
+            const sh = getAssigneeSpentHours(u, task, (task.assigneeIds || []).length);
+            return { ...u, spentHours: sh, spent_hours: sh };
+          })
+          .filter(Boolean)
   ) as any[];
   return (
     <div
@@ -895,9 +1076,7 @@ function TaskCard({
       </div>
       <div className="flex items-center justify-between flex-wrap gap-y-1 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-accent/60 px-2 py-0.5">
-            {task.estimateHours}h
-          </span>
+          <span className="rounded-full bg-accent/60 px-2 py-0.5">{task.estimateHours}h</span>
           <Chip tone={priorityTone(task.priority)}>↑ {task.priority}</Chip>
         </div>
         <div className="flex -space-x-1.5">
@@ -913,7 +1092,9 @@ function TaskCard({
             </span>
           )}
           {assignees.length === 0 && (
-            <Avatar className="h-6 w-6"><AvatarFallback>?</AvatarFallback></Avatar>
+            <Avatar className="h-6 w-6">
+              <AvatarFallback>?</AvatarFallback>
+            </Avatar>
           )}
         </div>
       </div>
@@ -924,12 +1105,22 @@ function TaskCard({
 // ---------------- Task Details ----------------
 
 function TaskDetails({
-  task, users, project, onBack,
-}: { task: Task; users: User[]; project: Project; onBack: () => void }) {
+  task,
+  users,
+  project,
+  onBack,
+}: {
+  task: Task;
+  users: User[];
+  project: Project;
+  onBack: () => void;
+}) {
   const qc = useQueryClient();
   const { user: me } = useAuth();
   const [editing, setEditing] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
+  const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
 
   // Local edit state
   const [name, setName] = useState(task.name);
@@ -990,36 +1181,62 @@ function TaskDetails({
           const sh = getAssigneeSpentHours(a, task, task.assignees!.length);
           return u
             ? { ...u, ...a, spentHours: sh, spent_hours: sh }
-            : { ...a, id: a.id, name: a.name, avatarUrl: a.avatarUrl || a.avatar_url, position: a.position, spentHours: sh, spent_hours: sh };
+            : {
+                ...a,
+                id: a.id,
+                name: a.name,
+                avatarUrl: a.avatarUrl || a.avatar_url,
+                position: a.position,
+                spentHours: sh,
+                spent_hours: sh,
+              };
         })
-      : (task.assigneeIds || []).map((id) => {
-          const u = users.find((u) => u.id === id);
-          if (!u) return null;
-          const sh = getAssigneeSpentHours(u, task, (task.assigneeIds || []).length);
-          return { ...u, spentHours: sh, spent_hours: sh };
-        }).filter(Boolean)
+      : (task.assigneeIds || [])
+          .map((id) => {
+            const u = users.find((u) => u.id === id);
+            if (!u) return null;
+            const sh = getAssigneeSpentHours(u, task, (task.assigneeIds || []).length);
+            return { ...u, spentHours: sh, spent_hours: sh };
+          })
+          .filter(Boolean)
   ) as any[];
   const overdue = task.dueDate && isOverdue(task.dueDate) && task.status !== "done";
   const isAssignee = !!me && (task.assigneeIds || []).includes(me.id);
-  const myLogged = (me && assignees.find((a: any) => a.id === me.id)?.spentHours) ?? (me && getAssigneeSpentHours({ id: me.id }, task, assignees.length)) ?? Number(task.spentHours ?? (task as any).spent_hours ?? 0);
+  const myLogged =
+    (me && assignees.find((a: any) => a.id === me.id)?.spentHours) ??
+    (me && getAssigneeSpentHours({ id: me.id }, task, assignees.length)) ??
+    Number(task.spentHours ?? (task as any).spent_hours ?? 0);
 
   function saveEdits() {
     if (!name.trim()) {
       toast.error("Task name is required");
       return;
     }
-    update.mutate({ name, description, status, priority, assigneeIds, estimateHours, dueDate: dueDate || undefined, attachments, links });
+    update.mutate({
+      name,
+      description,
+      status,
+      priority,
+      assigneeIds,
+      estimateHours,
+      dueDate: dueDate || undefined,
+      attachments,
+      links,
+    });
     setEditing(false);
   }
 
   function toggleAssignee(id: string) {
-    setAssigneeIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+    setAssigneeIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
       <div className="space-y-4">
-        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ChevronLeft className="h-4 w-4" /> Back to board
         </button>
         <div className="bg-card rounded-2xl border border-border/60 p-5 shadow-sm">
@@ -1047,7 +1264,9 @@ function TaskDetails({
                   }
                 }}
               >
-                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todo">To-Do</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
@@ -1058,10 +1277,14 @@ function TaskDetails({
               <button
                 onClick={() => (editing ? saveEdits() : setEditing(true))}
                 disabled={editing && (!name.trim() || update.isPending)}
-                className="rounded-lg bg-card border border-border p-2 hover:bg-accent disabled:opacity-50"
+                className={`rounded-lg border p-2 disabled:opacity-50 transition ${editing ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90" : "bg-card border-border hover:bg-accent"}`}
                 title={editing ? "Save" : "Edit"}
               >
-                {editing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                {editing ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                )}
               </button>
             </div>
           </div>
@@ -1078,18 +1301,28 @@ function TaskDetails({
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Estimate (hours)">
-                  <input type="number" min={0.5} step={0.5} value={estimateHours}
+                  <input
+                    type="number"
+                    min={0.5}
+                    step={0.5}
+                    value={estimateHours}
                     onChange={(e) => setEstimateHours(Number(e.target.value))}
-                    className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
+                    className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm"
+                  />
                 </Field>
                 <Field label="Deadline">
-                  <input type="date" value={dueDate}
+                  <input
+                    type="date"
+                    value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
+                    className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm"
+                  />
                 </Field>
                 <Field label="Priority">
                   <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
@@ -1098,53 +1331,133 @@ function TaskDetails({
                   </Select>
                 </Field>
               </div>
-              <Field label={`Assignees (${assigneeIds.length})`}>
-                <div className="max-h-44 overflow-y-auto space-y-1.5 rounded-xl border border-input bg-card p-2">
-                  {users.map((u) => {
-                    const sel = assigneeIds.includes(u.id);
-                    return (
-                      <button
-                        key={u.id}
-                        type="button"
-                        onClick={() => toggleAssignee(u.id)}
-                        className={`w-full flex items-center gap-2 rounded-lg p-1.5 text-left transition ${sel ? "bg-primary/10" : "hover:bg-accent/40"}`}
-                      >
-                        <Avatar className="h-7 w-7"><AvatarImage src={u.avatarUrl} /><AvatarFallback>{u.name[0]}</AvatarFallback></Avatar>
-                        <span className="text-sm flex-1 truncate">{u.name}</span>
-                        {sel && <Check className="h-4 w-4 text-primary" />}
-                      </button>
-                    );
-                  })}
-                </div>
+              <Field label="Assignees (Optional)">
+                <Popover open={assigneeDropdownOpen} onOpenChange={setAssigneeDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm flex items-center justify-between hover:bg-accent/40 transition text-left"
+                    >
+                      <span className="truncate">
+                        {assigneeIds.length === 0
+                          ? "Select assignees..."
+                          : `${assigneeIds.length} assignee${assigneeIds.length === 1 ? "" : "s"}`}
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-72 p-3 space-y-2.5 shadow-xl rounded-2xl border bg-popover z-50"
+                    align="start"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Manage Assignees
+                      </span>
+                      {assigneeIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setAssigneeIds([])}
+                          className="text-xs text-destructive hover:underline"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <input
+                        value={assigneeSearch}
+                        onChange={(e) => setAssigneeSearch(e.target.value)}
+                        placeholder="Search users..."
+                        className="w-full rounded-xl border border-input bg-card pl-8 pr-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
+                      {users
+                        .filter(
+                          (u) =>
+                            u.name.toLowerCase().includes(assigneeSearch.toLowerCase()) ||
+                            u.email.toLowerCase().includes(assigneeSearch.toLowerCase()),
+                        )
+                        .map((u) => {
+                          const sel = assigneeIds.includes(u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => toggleAssignee(u.id)}
+                              className={`w-full flex items-center gap-2 rounded-lg p-1.5 text-left transition ${sel ? "bg-primary/10" : "hover:bg-accent/40"}`}
+                            >
+                              <Avatar className="h-7 w-7">
+                                <AvatarImage src={u.avatarUrl} />
+                                <AvatarFallback>{u.name[0]}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm flex-1 truncate">{u.name}</span>
+                              {sel && <Check className="h-4 w-4 text-primary" />}
+                            </button>
+                          );
+                        })}
+                      {users.filter(
+                        (u) =>
+                          u.name.toLowerCase().includes(assigneeSearch.toLowerCase()) ||
+                          u.email.toLowerCase().includes(assigneeSearch.toLowerCase()),
+                      ).length === 0 && (
+                        <div className="text-center py-4 text-xs text-muted-foreground">
+                          No users found.
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </Field>
               <AttachmentsLinksEditor
-                attachments={attachments} setAttachments={setAttachments}
-                links={links} setLinks={setLinks}
+                attachments={attachments}
+                setAttachments={setAttachments}
+                links={links}
+                setLinks={setLinks}
               />
             </div>
           ) : (
             <>
               {task.description && (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">{task.description}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">
+                  {task.description}
+                </p>
               )}
               <div className="text-xs font-medium mb-2">Attachments & Links</div>
               {(task.attachments?.length ?? 0) === 0 && (task.links?.length ?? 0) === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-accent/20 py-8 px-4 text-center">
                   <Paperclip className="h-5 w-5 mx-auto text-muted-foreground mb-2" />
                   <div className="text-sm text-muted-foreground">No attachments yet</div>
-                  <button onClick={() => setEditing(true)} className="text-sm text-primary hover:underline mt-1">
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="text-sm text-primary hover:underline mt-1"
+                  >
                     Click to add attachments
                   </button>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {task.attachments?.map((a, i) => (
-                    <a key={i} href={a} target="_blank" rel="noreferrer" className="block text-sm text-primary hover:underline truncate">
+                    <a
+                      key={i}
+                      href={a}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-sm text-primary hover:underline truncate"
+                    >
                       📎 Attachment {i + 1}
                     </a>
                   ))}
                   {task.links?.map((l, i) => (
-                    <a key={i} href={normalizeExternalUrl(l)} target="_blank" rel="noreferrer" className="block text-sm text-primary hover:underline truncate">
+                    <a
+                      key={i}
+                      href={normalizeExternalUrl(l)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-sm text-primary hover:underline truncate"
+                    >
                       🔗 {l}
                     </a>
                   ))}
@@ -1167,10 +1480,15 @@ function TaskDetails({
             <div className="space-y-1.5">
               {assignees.map((a) => (
                 <div key={a.id} className="flex items-center gap-2">
-                  <Avatar className="h-7 w-7"><AvatarImage src={a.avatarUrl || a.avatar_url} /><AvatarFallback>{(a.name || "?")[0]}</AvatarFallback></Avatar>
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={a.avatarUrl || a.avatar_url} />
+                    <AvatarFallback>{(a.name || "?")[0]}</AvatarFallback>
+                  </Avatar>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium truncate">{a.name}</div>
-                    {a.position && <div className="text-[11px] text-muted-foreground">{a.position}</div>}
+                    {a.position && (
+                      <div className="text-[11px] text-muted-foreground">{a.position}</div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1180,29 +1498,56 @@ function TaskDetails({
 
         <div>
           <div className="text-xs text-muted-foreground">Priority</div>
-          <div className="mt-1"><Chip tone={priorityTone(task.priority)}>↑ {task.priority}</Chip></div>
+          <div className="mt-1">
+            <Chip tone={priorityTone(task.priority)}>↑ {task.priority}</Chip>
+          </div>
         </div>
 
         <div className="rounded-xl border border-border/60 p-3 space-y-2">
           <div className="text-sm font-semibold">Time Tracking</div>
           <div className="flex items-baseline justify-between">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold tabular-nums">{Number(task.spentHours ?? (task as any).spent_hours ?? task.totalSpentHours ?? (task as any).total_spent_hours ?? assignees.reduce((acc: number, x: any) => acc + Number(x.spentHours ?? x.spent_hours ?? 0), 0))}h</span>
+              <span className="text-lg font-bold tabular-nums">
+                {Number(
+                  task.spentHours ??
+                    (task as any).spent_hours ??
+                    task.totalSpentHours ??
+                    (task as any).total_spent_hours ??
+                    assignees.reduce(
+                      (acc: number, x: any) => acc + Number(x.spentHours ?? x.spent_hours ?? 0),
+                      0,
+                    ),
+                )}
+                h
+              </span>
               <span className="text-xs text-muted-foreground">/ {task.estimateHours}h</span>
             </div>
             <span className="text-[11px] text-muted-foreground">Total logged time</span>
           </div>
           <div className="h-1.5 bg-accent rounded-full overflow-hidden">
-            <div className="h-full bg-primary" style={{ width: `${Math.min(100, ((Number(task.spentHours ?? (task as any).spent_hours ?? task.totalSpentHours ?? (task as any).total_spent_hours ?? 0)) / Math.max(0.01, task.estimateHours)) * 100)}%` }} />
+            <div
+              className="h-full bg-primary"
+              style={{
+                width: `${Math.min(100, (Number(task.spentHours ?? (task as any).spent_hours ?? task.totalSpentHours ?? (task as any).total_spent_hours ?? 0) / Math.max(0.01, task.estimateHours)) * 100)}%`,
+              }}
+            />
           </div>
           {assignees.length > 0 && (
             <div className="space-y-1 pt-1">
               {assignees.map((a) => {
-                const h = Number(a.spentHours ?? a.spent_hours ?? getAssigneeSpentHours(a, task, assignees.length));
+                const h = Number(
+                  a.spentHours ?? a.spent_hours ?? getAssigneeSpentHours(a, task, assignees.length),
+                );
                 return (
                   <div key={a.id} className="flex items-center gap-2 text-xs">
-                    <Avatar className="h-5 w-5"><AvatarImage src={a.avatarUrl || a.avatar_url} /><AvatarFallback>{(a.name || "?")[0]}</AvatarFallback></Avatar>
-                    <span className="flex-1 truncate text-muted-foreground">{a.name}{me?.id === a.id ? " (you)" : ""}</span>
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage src={a.avatarUrl || a.avatar_url} />
+                      <AvatarFallback>{(a.name || "?")[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="flex-1 truncate text-muted-foreground">
+                      {a.name}
+                      {me?.id === a.id ? " (you)" : ""}
+                    </span>
                     <span className="tabular-nums font-medium">{h}h</span>
                   </div>
                 );
@@ -1236,7 +1581,10 @@ function TaskDetails({
           open={logOpen}
           onOpenChange={setLogOpen}
           currentSpent={myLogged}
-          onSave={(h) => { logTime.mutate({ userId: me.id, hours: h }); setLogOpen(false); }}
+          onSave={(h) => {
+            logTime.mutate({ userId: me.id, hours: h });
+            setLogOpen(false);
+          }}
         />
       )}
     </div>
@@ -1253,21 +1601,44 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function LogTimeDialog({
-  open, onOpenChange, currentSpent, onSave,
-}: { open: boolean; onOpenChange: (v: boolean) => void; currentSpent: number; onSave: (h: number) => void }) {
+  open,
+  onOpenChange,
+  currentSpent,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  currentSpent: number;
+  onSave: (h: number) => void;
+}) {
   const [hours, setHours] = useState(currentSpent);
-  useEffect(() => { if (open) setHours(currentSpent); }, [open, currentSpent]);
+  useEffect(() => {
+    if (open) setHours(currentSpent);
+  }, [open, currentSpent]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Log time</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Log time</DialogTitle>
+        </DialogHeader>
         <Field label="Total time spent (hours) *">
-          <input type="number" min={0.25} step={0.25} value={hours}
+          <input
+            type="number"
+            min={0.25}
+            step={0.25}
+            value={hours}
             onChange={(e) => setHours(Number(e.target.value))}
-            className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
+            className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm"
+          />
         </Field>
         <div className="flex justify-end">
-          <button onClick={() => onSave(hours)} disabled={hours <= 0 || isNaN(hours)} className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50">Save</button>
+          <button
+            onClick={() => onSave(hours)}
+            disabled={hours <= 0 || isNaN(hours)}
+            className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
+          >
+            Save
+          </button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1277,8 +1648,16 @@ function LogTimeDialog({
 // ---------------- Add Project ----------------
 
 function AddProjectDialog({
-  open, onOpenChange, project, users: propUsers,
-}: { open: boolean; onOpenChange: (v: boolean) => void; project?: Project; users?: User[] }) {
+  open,
+  onOpenChange,
+  project,
+  users: propUsers,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  project?: Project;
+  users?: User[];
+}) {
   const { hasRole } = useAuth();
   const qc = useQueryClient();
   const { data: fetchedUsers = [] } = useQuery({
@@ -1314,8 +1693,12 @@ function AddProjectDialog({
         setSelected(project.memberIds || []);
         setSearch("");
       } else {
-        setName(""); setStartDate(""); setDeadline("");
-        setPriority("medium"); setDescription(""); setImageUrl(undefined);
+        setName("");
+        setStartDate("");
+        setDeadline("");
+        setPriority("medium");
+        setDescription("");
+        setImageUrl(undefined);
         setCode(`PN${String(Math.floor(Math.random() * 9_000_000) + 1_000_000)}`);
         setSelected([]);
         setSearch("");
@@ -1326,7 +1709,10 @@ function AddProjectDialog({
   const save = useMutation({
     mutationFn: () => {
       const body: Partial<Project> = {
-        name, code, description, priority,
+        name,
+        code,
+        description,
+        priority,
         startDate: startDate || undefined,
         deadline: deadline || undefined,
         imageUrl,
@@ -1345,7 +1731,10 @@ function AddProjectDialog({
   async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be < 5 MB"); return; }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be < 5 MB");
+      return;
+    }
     setUploading(true);
     try {
       const { url } = await uploadApi.upload(file);
@@ -1357,10 +1746,11 @@ function AddProjectDialog({
     }
   }
 
-  const filteredUsers = users.filter((u) =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.position.toLowerCase().includes(search.toLowerCase())
+  const filteredUsers = users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      u.position.toLowerCase().includes(search.toLowerCase()),
   );
 
   function toggleMember(id: string) {
@@ -1378,29 +1768,45 @@ function AddProjectDialog({
           <div className="space-y-4">
             <div className="grid grid-cols-[1fr_160px] gap-3">
               <Field label="Project Name *">
-                <input value={name} onChange={(e) => setName(e.target.value)}
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="Project Name"
-                  className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
+                  className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm"
+                />
               </Field>
               <Field label="Project Code *">
-                <input value={code} onChange={(e) => setCode(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-accent/30 px-3 py-2.5 text-sm font-mono tracking-wider" />
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-accent/30 px-3 py-2.5 text-sm font-mono tracking-wider"
+                />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Start Date (Optional)">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm"
+                />
               </Field>
               <Field label="Deadline (Optional)">
-                <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
+                <input
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm"
+                />
               </Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Priority">
                 <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
@@ -1423,9 +1829,14 @@ function AddProjectDialog({
                       <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-3 space-y-2.5 shadow-xl rounded-2xl border bg-popover z-50" align="start">
+                  <PopoverContent
+                    className="w-80 p-3 space-y-2.5 shadow-xl rounded-2xl border bg-popover z-50"
+                    align="start"
+                  >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">Select Project Members</span>
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Select Project Members
+                      </span>
                       {selected.length > 0 && (
                         <button
                           type="button"
@@ -1438,13 +1849,18 @@ function AddProjectDialog({
                     </div>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <input value={search} onChange={(e) => setSearch(e.target.value)}
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search employees to assign..."
-                        className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                        className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
                     </div>
                     <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
                       {filteredUsers.length === 0 ? (
-                        <div className="text-xs text-muted-foreground text-center py-4">No employees found</div>
+                        <div className="text-xs text-muted-foreground text-center py-4">
+                          No employees found
+                        </div>
                       ) : (
                         filteredUsers.slice(0, 20).map((u) => {
                           const isSelected = selected.includes(u.id);
@@ -1454,13 +1870,20 @@ function AddProjectDialog({
                               key={u.id}
                               onClick={() => toggleMember(u.id)}
                               className={`w-full flex items-center gap-2 rounded-xl border p-2 text-left transition ${
-                                isSelected ? "border-primary bg-primary/10 text-foreground" : "border-transparent hover:bg-accent/50"
+                                isSelected
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "border-transparent hover:bg-accent/50"
                               }`}
                             >
-                              <Avatar className="h-7 w-7"><AvatarImage src={u.avatarUrl} /><AvatarFallback>{u.name[0]}</AvatarFallback></Avatar>
+                              <Avatar className="h-7 w-7">
+                                <AvatarImage src={u.avatarUrl} />
+                                <AvatarFallback>{u.name[0]}</AvatarFallback>
+                              </Avatar>
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs font-medium truncate">{u.name}</div>
-                                <div className="text-[10px] text-muted-foreground truncate">{u.position} · {u.email}</div>
+                                <div className="text-[10px] text-muted-foreground truncate">
+                                  {u.position} · {u.email}
+                                </div>
                               </div>
                               {isSelected && (
                                 <span className="h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
@@ -1478,9 +1901,13 @@ function AddProjectDialog({
             </div>
 
             <Field label="Description (Optional)">
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-                placeholder="Add some description of the project" rows={3}
-                className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add some description of the project"
+                rows={3}
+                className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm"
+              />
             </Field>
           </div>
 
@@ -1493,10 +1920,17 @@ function AddProjectDialog({
             >
               {imageUrl ? (
                 <>
-                  <img src={imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); setImageUrl(undefined); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImageUrl(undefined);
+                    }}
                     className="absolute top-2 right-2 rounded-full bg-card p-1 shadow"
                   >
                     <X className="h-3 w-3" />
@@ -1537,8 +1971,16 @@ function AddProjectDialog({
 // ---------------- Add Task ----------------
 
 function AddTaskDialog({
-  open, onOpenChange, project, users,
-}: { open: boolean; onOpenChange: (v: boolean) => void; project: Project; users: User[] }) {
+  open,
+  onOpenChange,
+  project,
+  users,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  project: Project;
+  users: User[];
+}) {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [estH, setEstH] = useState<number>(1);
@@ -1552,14 +1994,22 @@ function AddTaskDialog({
 
   useEffect(() => {
     if (open) {
-      setName(""); setEstH(1); setDeadline(""); setPriority("medium");
-      setSearch(""); setSelected([]); setDescription(""); setAttachments([]); setLinks([]);
+      setName("");
+      setEstH(1);
+      setDeadline("");
+      setPriority("medium");
+      setSearch("");
+      setSelected([]);
+      setDescription("");
+      setAttachments([]);
+      setLinks([]);
     }
   }, [open]);
 
-  const filteredUsers = users.filter((u) =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase()),
+  const filteredUsers = users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()),
   );
 
   const create = useMutation({
@@ -1584,35 +2034,51 @@ function AddTaskDialog({
   });
 
   function toggle(id: string) {
-    setSelected((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+    setSelected((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Add Task</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Add Task</DialogTitle>
+        </DialogHeader>
         <div className="space-y-4">
           <Field label="Task Name *">
-            <input value={name} onChange={(e) => setName(e.target.value)}
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Enter task name"
-              className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
+              className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm"
+            />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Estimate (hours)">
-              <input type="number" min={0} step={0.5} value={estH}
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={estH}
                 onChange={(e) => setEstH(Math.max(0, Number(e.target.value)))}
-                className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
+                className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm"
+              />
             </Field>
             <Field label="Deadline (Optional)">
-              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
-                className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
+              <input
+                type="date"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm"
+              />
             </Field>
           </div>
 
           <Field label="Priority">
             <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="low">Low</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
@@ -1627,14 +2093,22 @@ function AddTaskDialog({
                 Assignees{selected.length > 0 && ` (${selected.length} selected)`}
               </label>
               {selected.length > 0 && (
-                <button onClick={() => setSelected([])} className="text-xs text-destructive hover:underline">Clear all</button>
+                <button
+                  onClick={() => setSelected([])}
+                  className="text-xs text-destructive hover:underline"
+                >
+                  Clear all
+                </button>
               )}
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)}
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search employees..."
-                className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-2 text-sm" />
+                className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-2 text-sm"
+              />
             </div>
             <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
               {filteredUsers.slice(0, 20).map((u) => {
@@ -1645,13 +2119,20 @@ function AddTaskDialog({
                     key={u.id}
                     onClick={() => toggle(u.id)}
                     className={`w-full flex items-center gap-2 rounded-xl border p-2.5 text-left transition ${
-                      isSelected ? "border-primary bg-primary/5" : "border-border hover:bg-accent/40"
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-accent/40"
                     }`}
                   >
-                    <Avatar className="h-8 w-8"><AvatarImage src={u.avatarUrl} /><AvatarFallback>{u.name[0]}</AvatarFallback></Avatar>
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={u.avatarUrl} />
+                      <AvatarFallback>{u.name[0]}</AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{u.name}</div>
-                      <div className="text-[11px] text-muted-foreground truncate">{u.position} · {u.email}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        {u.position} · {u.email}
+                      </div>
                     </div>
                     {isSelected && (
                       <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
@@ -1670,16 +2151,22 @@ function AddTaskDialog({
           </div>
 
           <Field label="Description (Optional)">
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add some description of the task." rows={3}
-              className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add some description of the task."
+              rows={3}
+              className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm"
+            />
           </Field>
 
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground">Attachments & Links (Optional)</label>
             <AttachmentsLinksEditor
-              attachments={attachments} setAttachments={setAttachments}
-              links={links} setLinks={setLinks}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              links={links}
+              setLinks={setLinks}
             />
           </div>
         </div>
@@ -1698,10 +2185,15 @@ function AddTaskDialog({
 }
 
 function AttachmentsLinksEditor({
-  attachments, setAttachments, links, setLinks,
+  attachments,
+  setAttachments,
+  links,
+  setLinks,
 }: {
-  attachments: string[]; setAttachments: (v: string[]) => void;
-  links: string[]; setLinks: (v: string[]) => void;
+  attachments: string[];
+  setAttachments: (v: string[]) => void;
+  links: string[];
+  setLinks: (v: string[]) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [newLink, setNewLink] = useState("");
@@ -1725,7 +2217,7 @@ function AttachmentsLinksEditor({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="h-10 w-10 rounded-xl bg-purple/15 text-purple-foreground flex items-center justify-center hover:bg-purple/25"
+          className="h-10 w-10 rounded-full bg-purple/80 text-purple-foreground shadow-sm flex items-center justify-center hover:brightness-110 transition"
           title="Add file"
         >
           <Paperclip className="h-4 w-4" />
@@ -1733,35 +2225,76 @@ function AttachmentsLinksEditor({
         <input ref={fileRef} type="file" multiple hidden onChange={onFiles} />
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" className="h-10 w-10 rounded-xl bg-info/15 text-info-foreground flex items-center justify-center hover:bg-info/25" title="Add link">
+            <button
+              type="button"
+              className="h-10 w-10 rounded-full bg-info/80 text-info-foreground shadow-sm flex items-center justify-center hover:brightness-110 transition"
+              title="Add link"
+            >
               <Link2 className="h-4 w-4" />
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-72 space-y-2">
             <label className="text-xs text-muted-foreground">URL</label>
-            <input value={newLink} onChange={(e) => setNewLink(e.target.value)}
+            <input
+              value={newLink}
+              onChange={(e) => setNewLink(e.target.value)}
               placeholder="https://…"
-              className="w-full rounded-lg border border-input px-3 py-2 text-sm" />
+              className="w-full rounded-lg border border-input px-3 py-2 text-sm"
+            />
             <button
               type="button"
-              onClick={() => { if (newLink.trim()) { setLinks([...links, newLink.trim()]); setNewLink(""); } }}
+              onClick={() => {
+                if (newLink.trim()) {
+                  setLinks([...links, newLink.trim()]);
+                  setNewLink("");
+                }
+              }}
               className="w-full rounded-lg bg-primary text-primary-foreground py-2 text-sm font-medium"
-            >Add link</button>
+            >
+              Add link
+            </button>
           </PopoverContent>
         </Popover>
       </div>
       {(attachments.length > 0 || links.length > 0) && (
         <div className="space-y-1.5">
           {attachments.map((a, i) => (
-            <div key={`a-${i}`} className="flex items-center justify-between text-xs rounded-lg bg-accent/40 px-2 py-1.5">
-              <a href={a} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline">📎 Attachment {i + 1}</a>
-              <button type="button" onClick={() => setAttachments(attachments.filter((_, j) => j !== i))}><X className="h-3 w-3" /></button>
+            <div
+              key={`a-${i}`}
+              className="flex items-center justify-between text-xs rounded-lg bg-accent/40 px-2 py-1.5"
+            >
+              <a
+                href={a}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-primary hover:underline"
+              >
+                📎 Attachment {i + 1}
+              </a>
+              <button
+                type="button"
+                onClick={() => setAttachments(attachments.filter((_, j) => j !== i))}
+              >
+                <X className="h-3 w-3" />
+              </button>
             </div>
           ))}
           {links.map((l, i) => (
-            <div key={`l-${i}`} className="flex items-center justify-between text-xs rounded-lg bg-accent/40 px-2 py-1.5">
-              <a href={normalizeExternalUrl(l)} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline">🔗 {l}</a>
-              <button type="button" onClick={() => setLinks(links.filter((_, j) => j !== i))}><X className="h-3 w-3" /></button>
+            <div
+              key={`l-${i}`}
+              className="flex items-center justify-between text-xs rounded-lg bg-accent/40 px-2 py-1.5"
+            >
+              <a
+                href={normalizeExternalUrl(l)}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-primary hover:underline"
+              >
+                🔗 {l}
+              </a>
+              <button type="button" onClick={() => setLinks(links.filter((_, j) => j !== i))}>
+                <X className="h-3 w-3" />
+              </button>
             </div>
           ))}
         </div>
