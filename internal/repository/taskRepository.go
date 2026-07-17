@@ -172,7 +172,7 @@ func (r *postgresTaskRepositoy) UpdateTask(ctx context.Context, taskID string, p
 func (r *postgresTaskRepositoy) GetTasksByProjectID(ctx context.Context, projectID string) ([]*models.BoardTaskResponse, error) {
 	query := `
 			SELECT t.id, t.name, t.status, t.priority, t.estimate_hours, t.due_date, COALESCE(SUM(ta.spent_hours), 0) AS total_spent_hours,
-			COALESCE(json_agg(json_build_object('id', u.id, 'name', u.name))
+			COALESCE(json_agg(json_build_object('id', u.id, 'name', u.name, 'avatarUrl', u.avatar_url, 'spentHours', COALESCE(ta.spent_hours, 0)))
 			FILTER (WHERE u.id IS NOT NULL), '[]') AS assignees
 			FROM tasks t
 			LEFT JOIN task_assignees ta ON t.id = ta.task_id
@@ -217,7 +217,7 @@ func (r *postgresTaskRepositoy) GetTaskByID(ctx context.Context, taskID string) 
 			t.attachments,
             t.links,
 			COALESCE(SUM(ta.spent_hours), 0) AS total_spent_hours,
-			COALESCE(json_agg(json_build_object('id', u.id, 'name', u.name)) FILTER (WHERE u.id IS NOT NULL), '[]') AS  assignees
+			COALESCE(json_agg(json_build_object('id', u.id, 'name', u.name, 'avatarUrl', u.avatar_url, 'spentHours', COALESCE(ta.spent_hours, 0))) FILTER (WHERE u.id IS NOT NULL), '[]') AS assignees
 			FROM tasks t
 			LEFT JOIN task_assignees ta ON t.id = ta.task_id
 			LEFT JOIN users u ON ta.user_id = u.id
@@ -244,7 +244,7 @@ func (r *postgresTaskRepositoy) GetTaskByID(ctx context.Context, taskID string) 
 
 func (r *postgresTaskRepositoy) LogTime(ctx context.Context, taskID string, userID string, payload *models.LogTimePayload) error {
 	query := `
-			UPDATE task_assignees SET spent_hours = spent_hours + $1 
+			UPDATE task_assignees SET spent_hours = $1 
 			WHERE task_id = $2 AND user_id = $3
 			`
 	result, err := r.db.Exec(ctx, query, payload.Hours, taskID, userID)

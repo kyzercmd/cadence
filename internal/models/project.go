@@ -79,8 +79,10 @@ type UpdateProjectPayload struct {
 }
 
 type Assignee struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	AvatarURL  string  `json:"avatarUrl"`
+	SpentHours float64 `json:"spentHours"`
 }
 
 type BoardTaskResponse struct {
