@@ -134,6 +134,7 @@ func (r *postgresUserRepository) GetHRAndAdminIDs(ctx context.Context) ([]string
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var IDs = make([]string, 0)
 

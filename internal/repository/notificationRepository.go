@@ -79,6 +79,6 @@ func (r *postgresNotificationRepository) MarkAllAsRead(ctx context.Context, user
 	query := `
 			UPDATE notifications SET read = true WHERE user_id = $1 AND read = false
 			`
-	_, err := r.db.Query(ctx, query, userID)
+	_, err := r.db.Exec(ctx, query, userID)
 	return err
 }
