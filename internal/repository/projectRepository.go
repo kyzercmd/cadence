@@ -71,16 +71,44 @@ func (r *postgresProjectRepository) CreateProject(ctx context.Context, payload *
 }
 
 func (r *postgresProjectRepository) UpdateProject(ctx context.Context, projectID string, payload *models.UpdateProjectPayload) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	query := `
 			UPDATE projects SET name = $1, description = $2, status = $3, priority = $4, deadline = $5, image_url = $6 WHERE id = $7
 			`
-	row, err := r.db.Exec(ctx, query, payload.Name, payload.Description, payload.Status, payload.Priority, payload.Deadline, payload.ImageURL, projectID)
+	row, err := tx.Exec(ctx, query, payload.Name, payload.Description, payload.Status, payload.Priority, payload.Deadline, payload.ImageURL, projectID)
 	if err != nil {
 		return err
 	}
 
 	if rowsAffected := row.RowsAffected(); rowsAffected == 0 {
 		return models.ErrProjectNotFound
+	}
+
+	_, err = tx.Exec(ctx, `DELETE FROM project_members WHERE project_id = $1`, projectID)
+	if err != nil {
+		return err
+	}
+
+	if len(payload.MemberIDs) > 0 {
+		memberQuery := `
+						INSERT INTO project_members (project_id, user_id)
+						VALUES ($1, $2)
+						`
+		for _, memberID := range payload.MemberIDs {
+			_, err := tx.Exec(ctx, memberQuery, projectID, memberID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
 	}
 
 	return nil

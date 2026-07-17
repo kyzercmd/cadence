@@ -73,6 +73,7 @@ type UpdateProjectPayload struct {
 	Description string        `json:"description"`
 	Status      ProjectStatus `json:"status"`
 	Priority    Priority      `json:"priority"`
+	MemberIDs   []string      `json:"memberIds"`
 	Deadline    *time.Time    `json:"deadline"`
 	ImageURL    *string       `json:"imageUrl"`
 }
