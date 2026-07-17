@@ -13,12 +13,23 @@ export interface User {
   role: Role;
   position: string;
   level: Level;
-  gender: Gender;
-  birthday: string; // ISO
-  company: string;
-  location: string;
-  mobile: string;
-  skype: string;
+  gender?: Gender;
+  birthday?: string; // ISO
+  company?: string;
+  location?: string;
+  mobile?: string;
+  skype?: string;
+  active: boolean;
+}
+
+export interface UserListResponse {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string;
+  role: Role;
+  position: string;
+  level: Level;
   active: boolean;
 }
 
@@ -30,30 +41,43 @@ export interface Project {
   code: string; // PN0001245
   name: string;
   description: string;
-  status: "active" | "completed";
+  status: "active" | "completed" | string;
   priority: Priority;
-  leadId: string;
+  leadId?: string;
   memberIds: string[];
   createdAt: string;
-  iconColor: string;
+  iconColor?: string;
   startDate?: string;
   deadline?: string;
   imageUrl?: string;
 }
 
+export interface Assignee {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  avatar_url?: string;
+  position?: string;
+  spentHours?: number;
+}
+
 export interface Task {
   id: string;
-  projectId: string;
+  projectId?: string;
+  projectName?: string;
   name: string;
+  taskName?: string;
   description?: string;
   status: TaskStatus;
   priority: Priority;
-  assigneeIds: string[];
+  assigneeIds?: string[];
+  assignees?: Assignee[];
   estimateHours: number;
-  spentHours: number; // total — sum of timeByUser
+  spentHours?: number;
+  totalSpentHours?: number;
   timeByUser?: Record<string, number>;
   dueDate?: string;
-  createdAt: string;
+  createdAt?: string;
   attachments?: string[]; // data URLs / filenames
   links?: string[];
 }
@@ -65,6 +89,16 @@ export interface AttendanceEntry {
   clockIn?: string; // ISO datetime
   clockOut?: string;
   totalMinutes: number;
+}
+
+export interface EmployeeLatestAttendance {
+  userId: string;
+  name: string;
+  avatar_url: string;
+  role: Role;
+  position: string;
+  lastUpdate?: string;
+  totalMinutes?: number;
 }
 
 export type LeaveType = "vacation" | "sick" | "remote";

@@ -1,9 +1,18 @@
 import { apiClient } from "./client";
 import type { LeaveRequest, LeaveStatus } from "./types";
+import { formatDateForApi } from "../utils";
+
+function formatLeavePayload(body: Partial<LeaveRequest>): Record<string, any> {
+  return {
+    ...body,
+    startDate: formatDateForApi(body.startDate),
+    endDate: formatDateForApi(body.endDate),
+  };
+}
 
 export const leaveApi = {
   list: (params?: { userId?: string; status?: LeaveStatus; scope?: "me" | "pending" | "all" }) => {
-    if (params?.scope === "me" || params?.userId === "me") {
+    if (params?.scope === "me" || params?.userId) {
       return apiClient.get<LeaveRequest[]>("/api/leave/me");
     }
     if (params?.status === "pending" || params?.scope === "pending") {
@@ -14,7 +23,8 @@ export const leaveApi = {
   mine: () => apiClient.get<LeaveRequest[]>("/api/leave/me"),
   pending: () => apiClient.get<LeaveRequest[]>("/api/leave/pending"),
   all: () => apiClient.get<LeaveRequest[]>("/api/leave/all"),
-  submit: (body: Partial<LeaveRequest>) => apiClient.post<LeaveRequest>("/api/leave", body),
+  submit: (body: Partial<LeaveRequest>) =>
+    apiClient.post<LeaveRequest>("/api/leave", formatLeavePayload(body)),
   approve: (id: string, comment?: string) =>
     apiClient.patch<LeaveRequest>(`/api/leave/${id}/review`, { status: "approved", comment }),
   reject: (id: string, comment?: string) =>

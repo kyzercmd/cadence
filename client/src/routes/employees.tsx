@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Filter, Plus, MoreVertical, Search } from "lucide-react";
+import { cn, formatDateForInput } from "@/lib/utils";
 import { usersApi } from "@/lib/api/users.api";
 import type { Level, Role, User } from "@/lib/api/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,13 +43,30 @@ function EmployeesPage() {
   }, [canManage, navigate]);
 
   const { data: users = [] } = useQuery({
-    queryKey: ["users", levelFilter],
-    queryFn: () => usersApi.list(levelFilter === "all" ? undefined : { level: levelFilter }),
+    queryKey: ["users"],
+    queryFn: () => usersApi.list(),
+    enabled: canManage,
   });
 
   const filtered = useMemo(
-    () => users.filter((u) => u.name.toLowerCase().includes(search.toLowerCase())),
-    [users, search],
+    () =>
+      users
+        .filter((u) => {
+          if (search && !u.name.toLowerCase().includes(search.toLowerCase()) && !u.email.toLowerCase().includes(search.toLowerCase())) {
+            return false;
+          }
+          if (levelFilter !== "all" && u.level?.toLowerCase() !== levelFilter.toLowerCase()) {
+            return false;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          const aActive = a.active !== false;
+          const bActive = b.active !== false;
+          if (aActive !== bActive) return aActive ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        }),
+    [users, search, levelFilter],
   );
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = useMemo(
@@ -122,7 +140,7 @@ function EmployeesPage() {
       </div>
 
       {isAdmin && (
-        <EmployeeDialog open={addOpen} onOpenChange={setAddOpen} mode="create" />
+        <EmployeeDialog open={addOpen} onOpenChange={setAddOpen} mode="create" isAdmin={isAdmin} />
       )}
     </div>
   );
@@ -139,18 +157,29 @@ function EmployeeRow({
       qc.invalidateQueries({ queryKey: ["users"] });
     },
   });
+  const isInactive = user.active === false;
   return (
     <div
       onClick={onOpen}
-      className="bg-card rounded-2xl px-4 sm:px-5 py-4 shadow-sm grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-3 sm:gap-4 cursor-pointer hover:bg-accent/30 transition"
+      className={cn(
+        "rounded-2xl px-4 sm:px-5 py-4 shadow-sm grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-3 sm:gap-4 cursor-pointer transition",
+        isInactive
+          ? "bg-destructive/5 border border-destructive/25 hover:bg-destructive/10 opacity-90"
+          : "bg-card hover:bg-accent/30",
+      )}
     >
-      <Avatar className="h-11 w-11 shrink-0">
+      <Avatar className={cn("h-11 w-11 shrink-0", isInactive && "ring-2 ring-destructive/60 opacity-80")}>
         <AvatarImage src={user.avatarUrl} />
         <AvatarFallback>{user.name[0]}</AvatarFallback>
       </Avatar>
 
       <div className="min-w-0">
-        <div className="font-medium truncate">{user.name}</div>
+        <div className="font-medium truncate flex items-center gap-2">
+          <span className={cn(isInactive && "text-muted-foreground")}>{user.name}</span>
+          {isInactive && (
+            <Chip tone="destructive" className="shrink-0 text-[10px] px-2 py-0.5">Inactive</Chip>
+          )}
+        </div>
         <div className="text-xs text-muted-foreground truncate">{user.email}</div>
       </div>
 
@@ -193,9 +222,10 @@ interface EmployeeDialogProps {
   onOpenChange: (v: boolean) => void;
   mode: "create" | "edit";
   initial?: User;
+  isAdmin?: boolean;
 }
 
-function EmployeeDialog({ open, onOpenChange, mode, initial }: EmployeeDialogProps) {
+function EmployeeDialog({ open, onOpenChange, mode, initial, isAdmin }: EmployeeDialogProps) {
   const qc = useQueryClient();
   const empty: Partial<User> & { password?: string } = {
     name: "", email: "", position: "UI/UX Designer", level: "Junior",
@@ -205,7 +235,7 @@ function EmployeeDialog({ open, onOpenChange, mode, initial }: EmployeeDialogPro
   const [form, setForm] = useState<Partial<User> & { password?: string }>(empty);
 
   useEffect(() => {
-    if (open) setForm(initial ? { ...initial, password: "" } : empty);
+    if (open) setForm(initial ? { ...initial, birthday: formatDateForInput(initial.birthday), password: "" } : empty);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial]);
 
@@ -218,7 +248,14 @@ function EmployeeDialog({ open, onOpenChange, mode, initial }: EmployeeDialogPro
     },
   });
   const update = useMutation({
-    mutationFn: () => usersApi.update(initial!.id, form),
+    // Admin uses PATCH /api/admin/users/{id}; HR uses PATCH /api/users/{id}
+    mutationFn: () => {
+      const payload = { ...form };
+      if (!payload.password || !payload.password.trim()) delete payload.password;
+      return isAdmin
+        ? usersApi.adminUpdate(initial!.id, payload)
+        : usersApi.update(initial!.id, payload);
+    },
     onSuccess: () => {
       toast.success("Employee updated");
       qc.invalidateQueries({ queryKey: ["users"] });
@@ -233,10 +270,10 @@ function EmployeeDialog({ open, onOpenChange, mode, initial }: EmployeeDialogPro
           <DialogTitle>{mode === "create" ? "Add Employee" : "Edit Employee"}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1">
-          <Input label="Full name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <Input label="Email (login)" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
+          <Input label="Full name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+          <Input label="Email (login) *" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
           <Input
-            label={mode === "create" ? "Password" : "New password (leave blank to keep)"}
+            label={mode === "create" ? "Password *" : "New password (Optional - leave blank to keep)"}
             type="text"
             value={form.password}
             onChange={(v) => setForm({ ...form, password: v })}
@@ -252,7 +289,7 @@ function EmployeeDialog({ open, onOpenChange, mode, initial }: EmployeeDialogPro
               </SelectContent>
             </Select>
           </div>
-          <Input label="Position" value={form.position} onChange={(v) => setForm({ ...form, position: v })} />
+          <Input label="Position (Optional)" value={form.position} onChange={(v) => setForm({ ...form, position: v })} />
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Level</label>
             <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v as Level })}>
@@ -274,15 +311,16 @@ function EmployeeDialog({ open, onOpenChange, mode, initial }: EmployeeDialogPro
               </SelectContent>
             </Select>
           </div>
-          <Input label="Birthday" type="date" value={form.birthday} onChange={(v) => setForm({ ...form, birthday: v })} />
-          <Input label="Mobile" value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v })} />
-          <Input label="Skype" value={form.skype} onChange={(v) => setForm({ ...form, skype: v })} />
-          <Input label="Location" value={form.location} onChange={(v) => setForm({ ...form, location: v })} />
+          <Input label="Birthday (Optional)" type="date" value={form.birthday} onChange={(v) => setForm({ ...form, birthday: v })} />
+          <Input label="Mobile (Optional)" value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v })} />
+          <Input label="Skype (Optional)" value={form.skype} onChange={(v) => setForm({ ...form, skype: v })} />
+          <Input label="Location (Optional)" value={form.location} onChange={(v) => setForm({ ...form, location: v })} />
         </div>
         <DialogFooter>
           <button
             onClick={() => (mode === "create" ? create.mutate() : update.mutate())}
-            className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
+            disabled={!form.name?.trim() || !form.email?.trim() || (mode === "create" && !form.password?.trim()) || (mode === "create" ? create.isPending : update.isPending)}
+            className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
             {mode === "create" ? "Add Employee" : "Save changes"}
           </button>

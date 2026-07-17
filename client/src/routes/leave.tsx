@@ -40,7 +40,7 @@ function UserLeaveView() {
   const [open, setOpen] = useState(false);
   const { data: leaves = [] } = useQuery({
     queryKey: ["leave", "me", user?.id],
-    queryFn: () => leaveApi.list({ userId: user!.id }),
+    queryFn: () => leaveApi.list({ scope: "me" }),
     enabled: !!user,
   });
   const sorted = [...leaves].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -86,7 +86,10 @@ function UserLeaveView() {
 // ---------- Approver (HR / Admin) ----------
 function ApproverView() {
   const qc = useQueryClient();
-  const { data: all = [] } = useQuery({ queryKey: ["leave", "all"], queryFn: () => leaveApi.list() });
+  // GET /api/leave/pending — pending requests for the Pending tab
+  const { data: pendingLeaves = [] } = useQuery({ queryKey: ["leave", "pending"], queryFn: () => leaveApi.pending() });
+  // GET /api/leave/all — full history for the History tab
+  const { data: allLeaves = [] } = useQuery({ queryKey: ["leave", "all"], queryFn: () => leaveApi.all() });
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: () => usersApi.list() });
   const [viewing, setViewing] = useState<LeaveRequest | null>(null);
   const [search, setSearch] = useState("");
@@ -100,13 +103,13 @@ function ApproverView() {
     onSuccess: () => { toast.success("Rejected"); qc.invalidateQueries({ queryKey: ["leave"] }); setViewing(null); },
   });
 
-  const matches = (l: LeaveRequest) => {
+  const matchesSearch = (l: LeaveRequest) => {
     if (!search.trim()) return true;
     const u = users.find((x) => x.id === l.userId);
     return (u?.name ?? "").toLowerCase().includes(search.toLowerCase());
   };
-  const pending = all.filter((l) => l.status === "pending" && matches(l));
-  const history = all.filter((l) => l.status !== "pending" && matches(l)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const pending = pendingLeaves.filter(matchesSearch);
+  const history = allLeaves.filter((l) => l.status !== "pending" && matchesSearch(l)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
     <div className="space-y-6">
@@ -358,7 +361,7 @@ function LeaveRequestDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Add your comment"
+              placeholder="Add your comment (Optional)"
               rows={2}
               className="flex-1 text-sm bg-transparent focus:outline-none resize-none"
             />

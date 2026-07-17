@@ -19,8 +19,19 @@ function Dashboard() {
   const { user, hasRole } = useAuth();
   const isManagement = hasRole("admin", "hr");
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: projectsApi.list });
-  const { data: allTasks = [] } = useQuery({ queryKey: ["tasks"], queryFn: () => tasksApi.list() });
-  const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: () => usersApi.list() });
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ["tasks", "all-projects", projects.map((p) => p.id)],
+    queryFn: async () => {
+      const lists = await Promise.all(projects.map((p) => tasksApi.list(p.id)));
+      return lists.flat();
+    },
+    enabled: projects.length > 0,
+  });
+  const { data: users = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => usersApi.list(),
+    enabled: hasRole("admin", "hr"),
+  });
   const { data: pendingLeaves = [] } = useQuery({
     queryKey: ["leave", "pending"],
     queryFn: () => leaveApi.list({ status: "pending" }),
@@ -28,7 +39,12 @@ function Dashboard() {
   });
   const { data: myLeaves = [] } = useQuery({
     queryKey: ["leave", "me", user?.id],
-    queryFn: () => leaveApi.list({ userId: user!.id }),
+    queryFn: () => leaveApi.mine(),
+    enabled: !!user && !isManagement,
+  });
+  const { data: myTasksFromApi = [] } = useQuery({
+    queryKey: ["tasks", "me", user?.id],
+    queryFn: () => tasksApi.mine(),
     enabled: !!user && !isManagement,
   });
 
@@ -69,6 +85,7 @@ function Dashboard() {
                   <Link
                     key={p.id}
                     to="/projects"
+                    search={{ projectId: p.id }}
                     className="flex items-center justify-between rounded-xl border border-border/60 p-3 hover:bg-accent/40 transition gap-3"
                   >
                     <div className="min-w-0">
@@ -94,7 +111,7 @@ function Dashboard() {
   }
 
   // Employee dashboard
-  const myTasks = allTasks.filter((t) => t.assigneeIds.includes(user.id));
+  const myTasks = isManagement ? allTasks.filter((t) => (t.assigneeIds || []).includes(user.id)) : myTasksFromApi;
   const openMyTasks = myTasks.filter((t) => t.status !== "done");
   const upcoming = [...openMyTasks]
     .filter((t) => t.dueDate)
@@ -116,7 +133,7 @@ function Dashboard() {
           icon={CalendarClock}
           label="Due this week"
           value={
-            upcoming.filter((t) => differenceInCalendarDays(new Date(t.dueDate!), new Date()) <= 7)
+            openMyTasks.filter((t) => t.dueDate && differenceInCalendarDays(new Date(t.dueDate), new Date()) <= 7)
               .length
           }
         />
@@ -144,11 +161,15 @@ function Dashboard() {
                   <Link
                     key={t.id}
                     to="/projects"
+                    search={{
+                      projectId: t.projectId || projects.find((x) => x.id === t.projectId || x.name === (t as any).projectName)?.id,
+                      taskId: t.id,
+                    }}
                     className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 rounded-xl border border-border/60 p-3 hover:bg-accent/40"
                   >
                     <div className="min-w-0">
-                      <div className="text-[11px] text-muted-foreground truncate">{p?.name}</div>
-                      <div className="font-medium text-sm truncate">{t.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{p?.name || (t as any).projectName || "Project"}</div>
+                      <div className="font-medium text-sm truncate">{t.name || (t as any).taskName}</div>
                     </div>
                     <Chip tone={priorityTone(t.priority)}>{t.priority}</Chip>
                     <Chip tone={statusTone(t.status)}>{statusLabel(t.status)}</Chip>
@@ -190,6 +211,7 @@ function Dashboard() {
                   <Link
                     key={p.id}
                     to="/projects"
+                    search={{ projectId: p.id }}
                     className="block rounded-xl border border-border/60 p-3 hover:bg-accent/40"
                   >
                     <div className="flex items-center justify-between gap-2">

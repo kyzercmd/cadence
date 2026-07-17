@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { differenceInCalendarDays, format, parseISO, startOfWeek } from "date-fns";
+import { differenceInCalendarDays, format, startOfWeek } from "date-fns";
+import { safeDate, safeFormat } from "@/lib/utils";
 import { Play, Square, ChevronLeft, Search, Clock, CalendarRange, CalendarCheck2, History } from "lucide-react";
 import { attendanceApi } from "@/lib/api/attendance.api";
 import { usersApi } from "@/lib/api/users.api";
@@ -36,7 +37,7 @@ function EmployeeAttendanceView() {
       <h1 className="text-2xl font-bold">Attendance</h1>
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
         <ClockCard />
-        <HistoryPanel userId={user!.id} title="My history" />
+        <HistoryPanel userId={user!.id} title="My history" isSelf />
       </div>
     </div>
   );
@@ -55,7 +56,8 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
     const latest = new Map<string, string>();
     for (const a of all) {
       const cur = latest.get(a.userId);
-      if (!cur || a.date > cur) latest.set(a.userId, a.date);
+      const dt = a.lastUpdate || (a as any).date || "";
+      if (!cur || dt > cur) latest.set(a.userId, dt);
     }
     return [...nonAdmins]
       .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()))
@@ -69,7 +71,7 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
         <button onClick={() => setSelectedId(null)} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ChevronLeft className="h-4 w-4" /> Back to employees
         </button>
-        <HistoryPanel userId={selected.id} title={`${selected.name}'s attendance`} />
+        <HistoryPanel userId={selected.id} title={`${selected.name}'s attendance`} isSelf={false} />
       </div>
     );
   }
@@ -98,7 +100,8 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
           Click an employee to view their attendance history.
         </div>
         {sorted.map((u) => {
-          const latest = all.filter((a) => a.userId === u.id).sort((a, b) => b.date.localeCompare(a.date))[0];
+          const empAtt = all.find((a) => a.userId === u.id);
+          const dt = empAtt?.lastUpdate || (empAtt as any)?.date;
           return (
             <button
               key={u.id}
@@ -114,10 +117,10 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
                 <div className="text-xs text-muted-foreground capitalize truncate">{u.role} · {u.position}</div>
               </div>
               <div className="text-xs text-muted-foreground text-right shrink-0">
-                {latest ? (
+                {empAtt && dt ? (
                   <>
-                    <div className="truncate">Last {format(new Date(latest.date), "MMM d")}</div>
-                    <div>{fmtMinutes(latest.totalMinutes)}</div>
+                    <div className="truncate">Last {safeFormat(dt, "MMM d")}</div>
+                    <div>{fmtMinutes(empAtt.totalMinutes ?? 0)}</div>
                   </>
                 ) : "No records"}
               </div>
@@ -135,12 +138,11 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
 // ---------- Shared pieces ----------
 function ClockCard() {
   const qc = useQueryClient();
-  const { data: history = [] } = useQuery({
+  // GET /api/attendance/me — today's clock-in/out status
+  const { data: todayEntry } = useQuery({
     queryKey: ["attendance", "me"],
-    queryFn: () => attendanceApi.myHistory(),
+    queryFn: () => attendanceApi.today(),
   });
-  const today = new Date().toISOString().slice(0, 10);
-  const todayEntry = history.find((h) => h.date === today);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -162,13 +164,29 @@ function ClockCard() {
 
   return (
     <div className="bg-card rounded-2xl p-6 shadow-sm text-center">
+      {todayEntry?.clockIn && (
+        <div
+          style={{
+            backgroundColor: "oklch(0.5 0.05 160 / 0.15)",
+            color: "oklch(0.5 0.05 160)",
+            borderColor: "oklch(0.5 0.05 160 / 0.3)",
+          }}
+          className="mb-4 inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold"
+        >
+          <span
+            style={{ backgroundColor: "oklch(0.5 0.05 160)" }}
+            className="h-2 w-2 rounded-full animate-pulse"
+          />
+          Already clocked in today
+        </div>
+      )}
       <div className="text-sm text-muted-foreground">Today</div>
       <div className="text-2xl font-bold mt-1">{format(new Date(), "EEEE, MMM d")}</div>
       <div className="mt-6 mb-4 text-5xl font-bold tabular-nums">{fmtMinutes(liveMinutes)}</div>
       <div className="text-sm text-muted-foreground mb-6">
         {todayEntry?.clockIn ? (
-          <>Started {format(new Date(todayEntry.clockIn), "h:mm a")}{" "}
-          {todayEntry.clockOut ? `· ended ${format(new Date(todayEntry.clockOut), "h:mm a")}` : ""}</>
+          <>Started {safeFormat(todayEntry.clockIn, "h:mm a")}{" "}
+          {todayEntry.clockOut ? `· ended ${safeFormat(todayEntry.clockOut, "h:mm a")}` : ""}</>
         ) : "Not clocked in yet"}
       </div>
       {!todayEntry?.clockIn || (todayEntry.clockIn && todayEntry.clockOut) ? (
@@ -184,10 +202,12 @@ function ClockCard() {
   );
 }
 
-function HistoryPanel({ userId, title }: { userId: string; title: string }) {
+function HistoryPanel({ userId, title, isSelf }: { userId: string; title: string; isSelf: boolean }) {
   const { data: history = [] } = useQuery({
-    queryKey: ["attendance", "user", userId],
-    queryFn: () => attendanceApi.myHistory(userId),
+    queryKey: ["attendance", "history", userId],
+    // Employee viewing own history → GET /api/attendance/history
+    // HR/Admin viewing someone else  → GET /api/attendance/{targetId}/history
+    queryFn: () => isSelf ? attendanceApi.myHistory() : attendanceApi.employeeHistory(userId),
   });
   const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -196,8 +216,10 @@ function HistoryPanel({ userId, title }: { userId: string; title: string }) {
     if (sorted.length === 0) return 0;
     const buckets = new Map<string, number>();
     for (const r of sorted) {
-      const ws = format(startOfWeek(parseISO(r.date), { weekStartsOn: 1 }), "yyyy-MM-dd");
-      buckets.set(ws, (buckets.get(ws) ?? 0) + r.totalMinutes);
+      const d = safeDate(r.date);
+      if (!d) continue;
+      const ws = format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
+      buckets.set(ws, (buckets.get(ws) ?? 0) + (Number(r.totalMinutes) || 0));
     }
     const totals = [...buckets.values()].filter((v) => v > 0);
     if (totals.length === 0) return 0;
@@ -207,7 +229,10 @@ function HistoryPanel({ userId, title }: { userId: string; title: string }) {
   const lastEntry = sorted[0];
   const weeksTracked = useMemo(() => {
     const s = new Set<string>();
-    for (const r of sorted) s.add(format(startOfWeek(parseISO(r.date), { weekStartsOn: 1 }), "yyyy-MM-dd"));
+    for (const r of sorted) {
+      const d = safeDate(r.date);
+      if (d) s.add(format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd"));
+    }
     return s.size;
   }, [sorted]);
 
@@ -221,7 +246,7 @@ function HistoryPanel({ userId, title }: { userId: string; title: string }) {
         <StatCard
           icon={History}
           label="Last entry"
-          value={lastEntry ? `${differenceInCalendarDays(new Date(), parseISO(lastEntry.date))}d ago` : "—"}
+          value={lastEntry && safeDate(lastEntry.date) ? `${differenceInCalendarDays(new Date(), safeDate(lastEntry.date)!)}d ago` : "—"}
           accent="warning"
         />
       </div>
@@ -265,9 +290,9 @@ function AttendanceTable({ rows }: { rows: AttendanceEntry[] }) {
         <tbody>
           {rows.slice(0, 30).map((r) => (
             <tr key={r.id} className="border-b last:border-0">
-              <td className="py-3">{format(new Date(r.date), "MMM d, yyyy")}</td>
-              <td className="py-3">{r.clockIn ? format(new Date(r.clockIn), "h:mm a") : "—"}</td>
-              <td className="py-3">{r.clockOut ? format(new Date(r.clockOut), "h:mm a") : "—"}</td>
+              <td className="py-3">{safeFormat(r.date, "MMM d, yyyy")}</td>
+              <td className="py-3">{r.clockIn ? safeFormat(r.clockIn, "h:mm a") : "—"}</td>
+              <td className="py-3">{r.clockOut ? safeFormat(r.clockOut, "h:mm a") : "—"}</td>
               <td className="py-3 font-medium">{fmtMinutes(r.totalMinutes)}</td>
             </tr>
           ))}

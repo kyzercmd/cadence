@@ -9,7 +9,7 @@ import {
   Plus, Filter, ChevronLeft, ChevronDown, Pencil, Image as ImageIcon, X, Paperclip, Link2,
   Calendar as CalendarIcon, Clock, Check, Search, Users, Trash2,
 } from "lucide-react";
-import { format, isPast, parseISO } from "date-fns";
+import { safeFormat, isOverdue, formatDateForInput, normalizeExternalUrl } from "@/lib/utils";
 import { projectsApi } from "@/lib/api/projects.api";
 import { tasksApi } from "@/lib/api/tasks.api";
 import { usersApi } from "@/lib/api/users.api";
@@ -55,10 +55,15 @@ const COLUMNS: { id: TaskStatus; label: string }[] = [
 ];
 
 function ProjectsPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const qc = useQueryClient();
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: projectsApi.list });
-  const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: () => usersApi.list() });
+  const canListUsers = hasRole("admin", "hr");
+  const { data: rawUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => usersApi.list(),
+    enabled: canListUsers,
+  });
 
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -84,6 +89,11 @@ function ProjectsPage() {
     if (!activeId && projects[0]) setActiveId(projects[0].id);
   }, [projects, activeId]);
 
+  useEffect(() => {
+    setFilterPriority("all");
+    setFilterAssignee("all");
+  }, [activeId]);
+
   const selected = projects.find((p) => p.id === activeId);
 
   const { data: tasks = [] } = useQuery({
@@ -92,19 +102,59 @@ function ProjectsPage() {
     enabled: !!selected,
   });
 
-  const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
+  const { data: detailedTask } = useQuery({
+    queryKey: ["task", selectedTaskId],
+    queryFn: () => tasksApi.get(selectedTaskId!),
+    enabled: !!selectedTaskId,
+  });
+
+  const users = useMemo(() => {
+    if (rawUsers.length > 0) return rawUsers;
+    const map = new Map<string, any>();
+    if (user) map.set(user.id, { id: user.id, name: user.name, avatarUrl: user.avatarUrl, position: user.position || user.role, email: user.email });
+    for (const t of tasks) {
+      for (const a of (t.assignees || [])) {
+        if (!a.id) continue;
+        if (!map.has(a.id)) {
+          map.set(a.id, { id: a.id, name: a.name || "Assigned", avatarUrl: a.avatarUrl || a.avatar_url, position: a.position || "" });
+        } else {
+          const cur = map.get(a.id);
+          if (!cur.avatarUrl && (a.avatarUrl || a.avatar_url)) cur.avatarUrl = a.avatarUrl || a.avatar_url;
+        }
+      }
+    }
+    return Array.from(map.values()) as User[];
+  }, [rawUsers, tasks, user]);
+
+  const projectFilterUsers = useMemo(() => {
+    const validIds = new Set<string>();
+    if (selected?.leadId) validIds.add(selected.leadId);
+    if (selected?.memberIds) {
+      for (const id of selected.memberIds) validIds.add(id);
+    }
+    for (const t of tasks) {
+      for (const id of (t.assigneeIds || [])) validIds.add(id);
+      for (const a of (t.assignees || [])) if (a.id) validIds.add(a.id);
+    }
+    if (user && validIds.size === 0) validIds.add(user.id);
+
+    return users.filter((u) => validIds.has(u.id));
+  }, [users, selected, tasks, user]);
+
+  const selectedTaskFromList = tasks.find((t) => t.id === selectedTaskId) ?? null;
+  const selectedTask = detailedTask || selectedTaskFromList;
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       if (filterPriority !== "all" && t.priority !== filterPriority) return false;
-      if (filterAssignee !== "all" && !t.assigneeIds.includes(filterAssignee)) return false;
+      if (filterAssignee !== "all" && !(t.assigneeIds || []).includes(filterAssignee)) return false;
       return true;
     });
   }, [tasks, filterPriority, filterAssignee]);
 
   // (removed unused `now` variable)
   const isBacklog = (t: Task) =>
-    !!t.dueDate && t.status !== "done" && isPast(parseISO(t.dueDate));
+    !!t.dueDate && t.status !== "done" && isOverdue(t.dueDate);
 
   const byColumn = useMemo(() => {
     const map: Record<TaskStatus, Task[]> = { todo: [], in_progress: [], in_review: [], done: [] };
@@ -207,7 +257,7 @@ function ProjectsPage() {
           <div className="px-3 py-2 text-sm font-semibold">Current Projects</div>
           {projects.map((p) => {
             const isSelected = selected?.id === p.id;
-            const overdue = p.deadline && isPast(parseISO(p.deadline)) && p.status !== "completed";
+            const overdue = p.deadline && isOverdue(p.deadline) && p.status !== "completed";
             return (
               <div key={p.id} className={`rounded-xl transition ${isSelected ? "bg-accent/60 ring-1 ring-primary/40" : "hover:bg-accent/40"}`}>
                 <button
@@ -238,13 +288,13 @@ function ProjectsPage() {
                       {p.startDate && (
                         <div className="flex items-center gap-1.5">
                           <CalendarIcon className="h-3 w-3" />
-                          <span>Start {format(parseISO(p.startDate), "MMM d, yyyy")}</span>
+                          <span>Start {safeFormat(p.startDate, "MMM d, yyyy")}</span>
                         </div>
                       )}
                       {p.deadline && (
                         <div className={`flex items-center gap-1.5 ${overdue ? "text-destructive font-medium" : ""}`}>
                           <CalendarIcon className="h-3 w-3" />
-                          <span>Deadline {format(parseISO(p.deadline), "MMM d, yyyy")}</span>
+                          <span>Deadline {safeFormat(p.deadline, "MMM d, yyyy")}</span>
                         </div>
                       )}
                     </div>
@@ -289,7 +339,7 @@ function ProjectsPage() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                   {selected.deadline && (
                     <span className="flex items-center gap-1">
-                      <CalendarIcon className="h-3 w-3" /> Due {format(parseISO(selected.deadline), "MMM d, yyyy")}
+                      <CalendarIcon className="h-3 w-3" /> Due {safeFormat(selected.deadline, "MMM d, yyyy")}
                     </span>
                   )}
                   <Chip tone={priorityTone(selected.priority)}>{selected.priority}</Chip>
@@ -337,7 +387,7 @@ function ProjectsPage() {
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All assignees</SelectItem>
-                            {users.map((u) => (
+                            {projectFilterUsers.map((u) => (
                               <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -357,6 +407,7 @@ function ProjectsPage() {
               {editOpen && hasRole("admin") && (
                 <ProjectEditPanel
                   project={selected}
+                  users={users}
                   onClose={() => setEditOpen(false)}
                 />
               )}
@@ -404,7 +455,7 @@ function ProjectsPage() {
       </div>
 
       {hasRole("admin") && (
-        <AddProjectDialog open={addProjectOpen} onOpenChange={setAddProjectOpen} />
+        <AddProjectDialog open={addProjectOpen} onOpenChange={setAddProjectOpen} users={users} />
       )}
       {hasRole("admin") && selected && (
         <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
@@ -439,35 +490,49 @@ function ProjectsPage() {
   );
 }
 
-function ProjectEditPanel({ project, onClose }: { project: Project; onClose: () => void }) {
+function ProjectEditPanel({ project, users: propUsers, onClose }: { project: Project; users?: User[]; onClose: () => void }) {
+  const { hasRole } = useAuth();
   const qc = useQueryClient();
+  const { data: fetchedUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => usersApi.list(),
+    enabled: !propUsers && hasRole("admin", "hr"),
+  });
+  const users = propUsers || fetchedUsers;
   const [name, setName] = useState(project.name);
   const [code, setCode] = useState(project.code);
-  const [startDate, setStartDate] = useState(project.startDate ?? "");
-  const [deadline, setDeadline] = useState(project.deadline ?? "");
+  const [startDate, setStartDate] = useState(formatDateForInput(project.startDate));
+  const [deadline, setDeadline] = useState(formatDateForInput(project.deadline));
   const [priority, setPriority] = useState<Priority>(project.priority);
+  const [status, setStatus] = useState<string>(project.status || "active");
   const [description, setDescription] = useState(project.description ?? "");
   const [imageUrl, setImageUrl] = useState<string | undefined>(project.imageUrl);
+  const [selected, setSelected] = useState<string[]>(project.memberIds || []);
+  const [search, setSearch] = useState("");
+  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setName(project.name);
     setCode(project.code);
-    setStartDate(project.startDate ?? "");
-    setDeadline(project.deadline ?? "");
+    setStartDate(formatDateForInput(project.startDate));
+    setDeadline(formatDateForInput(project.deadline));
     setPriority(project.priority);
+    setStatus(project.status || "active");
     setDescription(project.description ?? "");
     setImageUrl(project.imageUrl);
+    setSelected(project.memberIds || []);
   }, [project]);
 
   const save = useMutation({
     mutationFn: () =>
       projectsApi.update(project.id, {
-        name, code, description, priority,
+        name, code, description, priority, status,
         startDate: startDate || undefined,
         deadline: deadline || undefined,
         imageUrl,
+        memberIds: selected,
       }),
     onSuccess: () => {
       toast.success("Project updated");
@@ -512,7 +577,8 @@ function ProjectEditPanel({ project, onClose }: { project: Project; onClose: () 
             </Field>
             <Field label="Project Code">
               <input value={code} onChange={(e) => setCode(e.target.value)}
-                className="w-full rounded-xl border border-input bg-accent/30 px-3 py-2 text-sm font-mono tracking-wider" />
+                disabled
+                className="w-full rounded-xl border border-input bg-accent/30 px-3 py-2 text-sm font-mono tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -525,16 +591,100 @@ function ProjectEditPanel({ project, onClose }: { project: Project; onClose: () 
                 className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
             </Field>
           </div>
-          <Field label="Priority">
-            <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Field label="Priority">
+              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Status">
+              <Select value={status} onValueChange={(v) => setStatus(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Members">
+              <Popover open={memberDropdownOpen} onOpenChange={setMemberDropdownOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm flex items-center justify-between hover:bg-accent/40 transition text-left"
+                  >
+                    <span className="truncate">
+                      {selected.length === 0
+                        ? "Select members..."
+                        : `${selected.length} member${selected.length === 1 ? "" : "s"}`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-3 space-y-2.5 shadow-xl rounded-2xl border bg-popover z-50" align="start">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">Manage Project Members</span>
+                    {selected.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelected([])}
+                        className="text-xs text-destructive hover:underline"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search employees..."
+                      className="w-full rounded-xl border border-input bg-card pl-8 pr-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                    {users
+                      .filter((u) =>
+                        u.name.toLowerCase().includes(search.toLowerCase()) ||
+                        u.email.toLowerCase().includes(search.toLowerCase()) ||
+                        u.position.toLowerCase().includes(search.toLowerCase())
+                      )
+                      .slice(0, 20)
+                      .map((u) => {
+                        const isSelected = selected.includes(u.id);
+                        return (
+                          <button
+                            type="button"
+                            key={u.id}
+                            onClick={() => setSelected((p) => (p.includes(u.id) ? p.filter((x) => x !== u.id) : [...p, u.id]))}
+                            className={`w-full flex items-center gap-2 rounded-xl border p-2 text-left transition ${
+                              isSelected ? "border-primary bg-primary/10 text-foreground" : "border-transparent hover:bg-accent/50"
+                            }`}
+                          >
+                            <Avatar className="h-6 w-6"><AvatarImage src={u.avatarUrl} /><AvatarFallback>{u.name[0]}</AvatarFallback></Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium truncate">{u.name}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">{u.position}</div>
+                            </div>
+                            {isSelected && (
+                              <span className="h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                                <Check className="h-2.5 w-2.5" />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </Field>
+          </div>
           <Field label="Description">
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
               rows={3}
@@ -674,11 +824,60 @@ function taskCode(project: Project, task: Task) {
   return `${project.code}-${task.id.slice(2, 5).toUpperCase()}-${suffix}`;
 }
 
+function getAssigneeSpentHours(a: any, task: any, totalAssignees: number): number {
+  if (!a) return 0;
+  const direct =
+    a.spentHours ??
+    a.spent_hours ??
+    a.totalSpentHours ??
+    a.total_spent_hours ??
+    a.hours ??
+    a.spentTime ??
+    a.spent_time;
+  if (direct !== undefined && direct !== null) {
+    const num = Number(direct);
+    if (!isNaN(num)) return num;
+  }
+  if (a.id && task) {
+    const fromMap =
+      task.timeByUser?.[a.id] ??
+      task.time_by_user?.[a.id] ??
+      task.spentHoursByUser?.[a.id] ??
+      task.spent_hours_by_user?.[a.id] ??
+      task.assigneeHours?.[a.id] ??
+      task.assignee_hours?.[a.id];
+    if (fromMap !== undefined && fromMap !== null) {
+      const num = Number(fromMap);
+      if (!isNaN(num)) return num;
+    }
+  }
+  if (totalAssignees === 1 && task) {
+    const total = Number(task.spentHours ?? task.spent_hours ?? task.totalSpentHours ?? task.total_spent_hours ?? 0);
+    if (!isNaN(total)) return total;
+  }
+  return 0;
+}
+
 function TaskCard({
   task, users, project, dragging = false, onSelect, overdue,
 }: { task: Task; users: User[]; project: Project; dragging?: boolean; onSelect?: () => void; overdue?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
-  const assignees = task.assigneeIds.map((id) => users.find((u) => u.id === id)).filter(Boolean) as User[];
+  const assignees = (
+    task.assignees && task.assignees.length > 0
+      ? task.assignees.map((a: any) => {
+          const u = users.find((x) => x.id === a.id);
+          const sh = getAssigneeSpentHours(a, task, task.assignees!.length);
+          return u
+            ? { ...u, ...a, spentHours: sh, spent_hours: sh }
+            : { ...a, id: a.id, name: a.name, avatarUrl: a.avatarUrl || a.avatar_url, position: a.position, spentHours: sh, spent_hours: sh };
+        })
+      : (task.assigneeIds || []).map((id) => {
+          const u = users.find((u) => u.id === id);
+          if (!u) return null;
+          const sh = getAssigneeSpentHours(u, task, (task.assigneeIds || []).length);
+          return { ...u, spentHours: sh, spent_hours: sh };
+        }).filter(Boolean)
+  ) as any[];
   return (
     <div
       ref={setNodeRef}
@@ -703,9 +902,9 @@ function TaskCard({
         </div>
         <div className="flex -space-x-1.5">
           {assignees.slice(0, 3).map((a) => (
-            <Avatar key={a.id} className="h-6 w-6 ring-2 ring-card">
-              <AvatarImage src={a.avatarUrl} />
-              <AvatarFallback>{a.name[0]}</AvatarFallback>
+            <Avatar key={a.id} className="h-6 w-6 ring-2 ring-card" title={a.name}>
+              <AvatarImage src={a.avatarUrl || a.avatar_url} />
+              <AvatarFallback>{(a.name || "?")[0]}</AvatarFallback>
             </Avatar>
           ))}
           {assignees.length > 3 && (
@@ -735,30 +934,42 @@ function TaskDetails({
   // Local edit state
   const [name, setName] = useState(task.name);
   const [description, setDescription] = useState(task.description ?? "");
+  const [status, setStatus] = useState<TaskStatus>(task.status);
   const [priority, setPriority] = useState<Priority>(task.priority);
-  const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds);
+  const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds || []);
   const [estimateHours, setEstimateHours] = useState(task.estimateHours);
-  const [dueDate, setDueDate] = useState(task.dueDate ?? "");
+  const [dueDate, setDueDate] = useState(formatDateForInput(task.dueDate));
   const [attachments, setAttachments] = useState<string[]>(task.attachments ?? []);
   const [links, setLinks] = useState<string[]>(task.links ?? []);
 
   useEffect(() => {
     setName(task.name);
     setDescription(task.description ?? "");
+    setStatus(task.status);
     setPriority(task.priority);
-    setAssigneeIds(task.assigneeIds);
+    setAssigneeIds(task.assigneeIds || []);
     setEstimateHours(task.estimateHours);
-    setDueDate(task.dueDate ?? "");
+    setDueDate(formatDateForInput(task.dueDate));
     setAttachments(task.attachments ?? []);
     setLinks(task.links ?? []);
     setEditing(false);
-  }, [task.id]);
+  }, [task]);
 
   const update = useMutation({
     mutationFn: (patch: Partial<Task>) => tasksApi.update(task.id, patch),
     onSuccess: () => {
       toast.success("Task updated");
       qc.invalidateQueries({ queryKey: ["tasks", project.id] });
+      qc.invalidateQueries({ queryKey: ["task", task.id] });
+    },
+  });
+
+  const moveStatus = useMutation({
+    mutationFn: (status: TaskStatus) => tasksApi.moveStatus(task.id, status),
+    onSuccess: () => {
+      toast.success("Status updated");
+      qc.invalidateQueries({ queryKey: ["tasks", project.id] });
+      qc.invalidateQueries({ queryKey: ["task", task.id] });
     },
   });
 
@@ -768,16 +979,36 @@ function TaskDetails({
     onSuccess: () => {
       toast.success("Time logged");
       qc.invalidateQueries({ queryKey: ["tasks", project.id] });
+      qc.invalidateQueries({ queryKey: ["task", task.id] });
     },
   });
 
-  const assignees = task.assigneeIds.map((id) => users.find((u) => u.id === id)).filter(Boolean) as User[];
-  const overdue = task.dueDate && isPast(parseISO(task.dueDate)) && task.status !== "done";
-  const isAssignee = !!me && task.assigneeIds.includes(me.id);
-  const myLogged = (me && task.timeByUser?.[me.id]) || 0;
+  const assignees = (
+    task.assignees && task.assignees.length > 0
+      ? task.assignees.map((a: any) => {
+          const u = users.find((x) => x.id === a.id);
+          const sh = getAssigneeSpentHours(a, task, task.assignees!.length);
+          return u
+            ? { ...u, ...a, spentHours: sh, spent_hours: sh }
+            : { ...a, id: a.id, name: a.name, avatarUrl: a.avatarUrl || a.avatar_url, position: a.position, spentHours: sh, spent_hours: sh };
+        })
+      : (task.assigneeIds || []).map((id) => {
+          const u = users.find((u) => u.id === id);
+          if (!u) return null;
+          const sh = getAssigneeSpentHours(u, task, (task.assigneeIds || []).length);
+          return { ...u, spentHours: sh, spent_hours: sh };
+        }).filter(Boolean)
+  ) as any[];
+  const overdue = task.dueDate && isOverdue(task.dueDate) && task.status !== "done";
+  const isAssignee = !!me && (task.assigneeIds || []).includes(me.id);
+  const myLogged = (me && assignees.find((a: any) => a.id === me.id)?.spentHours) ?? (me && getAssigneeSpentHours({ id: me.id }, task, assignees.length)) ?? Number(task.spentHours ?? (task as any).spent_hours ?? 0);
 
   function saveEdits() {
-    update.mutate({ name, description, priority, assigneeIds, estimateHours, dueDate: dueDate || undefined, attachments, links });
+    if (!name.trim()) {
+      toast.error("Task name is required");
+      return;
+    }
+    update.mutate({ name, description, status, priority, assigneeIds, estimateHours, dueDate: dueDate || undefined, attachments, links });
     setEditing(false);
   }
 
@@ -806,7 +1037,16 @@ function TaskDetails({
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Select value={task.status} onValueChange={(v) => update.mutate({ status: v as TaskStatus })}>
+              <Select
+                value={editing ? status : task.status}
+                onValueChange={(v) => {
+                  if (editing) {
+                    setStatus(v as TaskStatus);
+                  } else {
+                    moveStatus.mutate(v as TaskStatus);
+                  }
+                }}
+              >
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todo">To-Do</SelectItem>
@@ -817,7 +1057,8 @@ function TaskDetails({
               </Select>
               <button
                 onClick={() => (editing ? saveEdits() : setEditing(true))}
-                className="rounded-lg bg-card border border-border p-2 hover:bg-accent"
+                disabled={editing && (!name.trim() || update.isPending)}
+                className="rounded-lg bg-card border border-border p-2 hover:bg-accent disabled:opacity-50"
                 title={editing ? "Save" : "Edit"}
               >
                 {editing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
@@ -903,7 +1144,7 @@ function TaskDetails({
                     </a>
                   ))}
                   {task.links?.map((l, i) => (
-                    <a key={i} href={l} target="_blank" rel="noreferrer" className="block text-sm text-primary hover:underline truncate">
+                    <a key={i} href={normalizeExternalUrl(l)} target="_blank" rel="noreferrer" className="block text-sm text-primary hover:underline truncate">
                       🔗 {l}
                     </a>
                   ))}
@@ -926,10 +1167,10 @@ function TaskDetails({
             <div className="space-y-1.5">
               {assignees.map((a) => (
                 <div key={a.id} className="flex items-center gap-2">
-                  <Avatar className="h-7 w-7"><AvatarImage src={a.avatarUrl} /><AvatarFallback>{a.name[0]}</AvatarFallback></Avatar>
+                  <Avatar className="h-7 w-7"><AvatarImage src={a.avatarUrl || a.avatar_url} /><AvatarFallback>{(a.name || "?")[0]}</AvatarFallback></Avatar>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium truncate">{a.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{a.position}</div>
+                    {a.position && <div className="text-[11px] text-muted-foreground">{a.position}</div>}
                   </div>
                 </div>
               ))}
@@ -946,21 +1187,21 @@ function TaskDetails({
           <div className="text-sm font-semibold">Time Tracking</div>
           <div className="flex items-baseline justify-between">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold tabular-nums">{task.spentHours}h</span>
+              <span className="text-lg font-bold tabular-nums">{Number(task.spentHours ?? (task as any).spent_hours ?? task.totalSpentHours ?? (task as any).total_spent_hours ?? assignees.reduce((acc: number, x: any) => acc + Number(x.spentHours ?? x.spent_hours ?? 0), 0))}h</span>
               <span className="text-xs text-muted-foreground">/ {task.estimateHours}h</span>
             </div>
             <span className="text-[11px] text-muted-foreground">Total logged time</span>
           </div>
           <div className="h-1.5 bg-accent rounded-full overflow-hidden">
-            <div className="h-full bg-primary" style={{ width: `${Math.min(100, (task.spentHours / Math.max(0.01, task.estimateHours)) * 100)}%` }} />
+            <div className="h-full bg-primary" style={{ width: `${Math.min(100, ((Number(task.spentHours ?? (task as any).spent_hours ?? task.totalSpentHours ?? (task as any).total_spent_hours ?? 0)) / Math.max(0.01, task.estimateHours)) * 100)}%` }} />
           </div>
           {assignees.length > 0 && (
             <div className="space-y-1 pt-1">
               {assignees.map((a) => {
-                const h = task.timeByUser?.[a.id] ?? 0;
+                const h = Number(a.spentHours ?? a.spent_hours ?? getAssigneeSpentHours(a, task, assignees.length));
                 return (
                   <div key={a.id} className="flex items-center gap-2 text-xs">
-                    <Avatar className="h-5 w-5"><AvatarImage src={a.avatarUrl} /><AvatarFallback>{a.name[0]}</AvatarFallback></Avatar>
+                    <Avatar className="h-5 w-5"><AvatarImage src={a.avatarUrl || a.avatar_url} /><AvatarFallback>{(a.name || "?")[0]}</AvatarFallback></Avatar>
                     <span className="flex-1 truncate text-muted-foreground">{a.name}{me?.id === a.id ? " (you)" : ""}</span>
                     <span className="tabular-nums font-medium">{h}h</span>
                   </div>
@@ -981,12 +1222,12 @@ function TaskDetails({
         <div>
           <div className="text-xs text-muted-foreground">Due Date</div>
           <div className={`text-sm font-medium mt-1 ${overdue ? "text-destructive" : ""}`}>
-            {task.dueDate ? format(parseISO(task.dueDate), "yyyy-MM-dd") : "—"}
+            {task.dueDate ? safeFormat(task.dueDate, "yyyy-MM-dd") : "—"}
           </div>
         </div>
 
         <div className="border-t pt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <CalendarIcon className="h-3 w-3" /> Created {format(new Date(task.createdAt), "yyyy-MM-dd")}
+          <CalendarIcon className="h-3 w-3" /> Created {safeFormat(task.createdAt, "yyyy-MM-dd")}
         </div>
       </div>
 
@@ -1020,13 +1261,13 @@ function LogTimeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader><DialogTitle>Log time</DialogTitle></DialogHeader>
-        <Field label="Total time spent (hours)">
-          <input type="number" min={0} step={0.25} value={hours}
+        <Field label="Total time spent (hours) *">
+          <input type="number" min={0.25} step={0.25} value={hours}
             onChange={(e) => setHours(Number(e.target.value))}
             className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm" />
         </Field>
         <div className="flex justify-end">
-          <button onClick={() => onSave(hours)} className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium">Save</button>
+          <button onClick={() => onSave(hours)} disabled={hours <= 0 || isNaN(hours)} className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50">Save</button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1036,9 +1277,16 @@ function LogTimeDialog({
 // ---------------- Add Project ----------------
 
 function AddProjectDialog({
-  open, onOpenChange, project,
-}: { open: boolean; onOpenChange: (v: boolean) => void; project?: Project }) {
+  open, onOpenChange, project, users: propUsers,
+}: { open: boolean; onOpenChange: (v: boolean) => void; project?: Project; users?: User[] }) {
+  const { hasRole } = useAuth();
   const qc = useQueryClient();
+  const { data: fetchedUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => usersApi.list(),
+    enabled: !propUsers && open && hasRole("admin", "hr"),
+  });
+  const users = propUsers || fetchedUsers;
   const isEdit = !!project;
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -1048,6 +1296,9 @@ function AddProjectDialog({
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -1055,15 +1306,19 @@ function AddProjectDialog({
       if (project) {
         setName(project.name);
         setCode(project.code);
-        setStartDate(project.startDate ?? "");
-        setDeadline(project.deadline ?? "");
+        setStartDate(formatDateForInput(project.startDate));
+        setDeadline(formatDateForInput(project.deadline));
         setPriority(project.priority);
         setDescription(project.description ?? "");
         setImageUrl(project.imageUrl);
+        setSelected(project.memberIds || []);
+        setSearch("");
       } else {
         setName(""); setStartDate(""); setDeadline("");
         setPriority("medium"); setDescription(""); setImageUrl(undefined);
         setCode(`PN${String(Math.floor(Math.random() * 9_000_000) + 1_000_000)}`);
+        setSelected([]);
+        setSearch("");
       }
     }
   }, [open, project]);
@@ -1075,6 +1330,7 @@ function AddProjectDialog({
         startDate: startDate || undefined,
         deadline: deadline || undefined,
         imageUrl,
+        memberIds: selected,
       };
       return isEdit ? projectsApi.update(project!.id, body) : projectsApi.create(body);
     },
@@ -1101,44 +1357,127 @@ function AddProjectDialog({
     }
   }
 
+  const filteredUsers = users.filter((u) =>
+    u.name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    u.position.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function toggleMember(id: string) {
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader><DialogTitle>{isEdit ? "Edit Project" : "Add Project"}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-6">
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Project" : "Create New Project"}</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-5 py-2">
           <div className="space-y-4">
             <div className="grid grid-cols-[1fr_160px] gap-3">
-              <Field label="Project Name">
+              <Field label="Project Name *">
                 <input value={name} onChange={(e) => setName(e.target.value)}
                   placeholder="Project Name"
                   className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
               </Field>
-              <Field label="Project Code">
+              <Field label="Project Code *">
                 <input value={code} onChange={(e) => setCode(e.target.value)}
                   className="w-full rounded-xl border border-input bg-accent/30 px-3 py-2.5 text-sm font-mono tracking-wider" />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Start Date">
+              <Field label="Start Date (Optional)">
                 <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
                   className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
               </Field>
-              <Field label="Deadline">
+              <Field label="Deadline (Optional)">
                 <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
                   className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
               </Field>
             </div>
-            <Field label="Priority">
-              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Description">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Priority">
+                <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Members (Optional)">
+                <Popover open={memberDropdownOpen} onOpenChange={setMemberDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm flex items-center justify-between hover:bg-accent/40 transition text-left"
+                    >
+                      <span className="truncate">
+                        {selected.length === 0
+                          ? "Select members..."
+                          : `${selected.length} member${selected.length === 1 ? "" : "s"} selected`}
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-3 space-y-2.5 shadow-xl rounded-2xl border bg-popover z-50" align="start">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">Select Project Members</span>
+                      {selected.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSelected([])}
+                          className="text-xs text-destructive hover:underline"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input value={search} onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search employees to assign..."
+                        className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                    </div>
+                    <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
+                      {filteredUsers.length === 0 ? (
+                        <div className="text-xs text-muted-foreground text-center py-4">No employees found</div>
+                      ) : (
+                        filteredUsers.slice(0, 20).map((u) => {
+                          const isSelected = selected.includes(u.id);
+                          return (
+                            <button
+                              type="button"
+                              key={u.id}
+                              onClick={() => toggleMember(u.id)}
+                              className={`w-full flex items-center gap-2 rounded-xl border p-2 text-left transition ${
+                                isSelected ? "border-primary bg-primary/10 text-foreground" : "border-transparent hover:bg-accent/50"
+                              }`}
+                            >
+                              <Avatar className="h-7 w-7"><AvatarImage src={u.avatarUrl} /><AvatarFallback>{u.name[0]}</AvatarFallback></Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-medium truncate">{u.name}</div>
+                                <div className="text-[10px] text-muted-foreground truncate">{u.position} · {u.email}</div>
+                              </div>
+                              {isSelected && (
+                                <span className="h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                                  <Check className="h-2.5 w-2.5" />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </Field>
+            </div>
+
+            <Field label="Description (Optional)">
               <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add some description of the project" rows={3}
                 className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
@@ -1184,7 +1523,7 @@ function AddProjectDialog({
         <div className="flex justify-end pt-4">
           <button
             onClick={() => save.mutate()}
-            disabled={!name.trim() || save.isPending}
+            disabled={!name.trim() || !code.trim() || save.isPending}
             className="rounded-xl bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium disabled:opacity-50"
           >
             {save.isPending ? "Saving…" : isEdit ? "Save Changes" : "Save Project"}
@@ -1260,12 +1599,12 @@ function AddTaskDialog({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Estimate (hours) *">
+            <Field label="Estimate (hours)">
               <input type="number" min={0} step={0.5} value={estH}
                 onChange={(e) => setEstH(Math.max(0, Number(e.target.value)))}
                 className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
             </Field>
-            <Field label="Deadline *">
+            <Field label="Deadline (Optional)">
               <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
                 className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
             </Field>
@@ -1330,7 +1669,7 @@ function AddTaskDialog({
             )}
           </div>
 
-          <Field label="Description">
+          <Field label="Description (Optional)">
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
               placeholder="Add some description of the task." rows={3}
               className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm" />
@@ -1347,7 +1686,7 @@ function AddTaskDialog({
         <div className="flex justify-end pt-4">
           <button
             onClick={() => create.mutate()}
-            disabled={!name.trim()}
+            disabled={!name.trim() || create.isPending}
             className="rounded-xl bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium disabled:opacity-50"
           >
             Create Task
@@ -1415,14 +1754,14 @@ function AttachmentsLinksEditor({
         <div className="space-y-1.5">
           {attachments.map((a, i) => (
             <div key={`a-${i}`} className="flex items-center justify-between text-xs rounded-lg bg-accent/40 px-2 py-1.5">
-              <span className="truncate">📎 Attachment {i + 1}</span>
-              <button onClick={() => setAttachments(attachments.filter((_, j) => j !== i))}><X className="h-3 w-3" /></button>
+              <a href={a} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline">📎 Attachment {i + 1}</a>
+              <button type="button" onClick={() => setAttachments(attachments.filter((_, j) => j !== i))}><X className="h-3 w-3" /></button>
             </div>
           ))}
           {links.map((l, i) => (
             <div key={`l-${i}`} className="flex items-center justify-between text-xs rounded-lg bg-accent/40 px-2 py-1.5">
-              <span className="truncate">🔗 {l}</span>
-              <button onClick={() => setLinks(links.filter((_, j) => j !== i))}><X className="h-3 w-3" /></button>
+              <a href={normalizeExternalUrl(l)} target="_blank" rel="noreferrer" className="truncate text-primary hover:underline">🔗 {l}</a>
+              <button type="button" onClick={() => setLinks(links.filter((_, j) => j !== i))}><X className="h-3 w-3" /></button>
             </div>
           ))}
         </div>

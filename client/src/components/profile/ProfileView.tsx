@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Camera, Save, ListTodo, Loader2, Eye, CheckCircle2, FolderKanban, Clock3 } from "lucide-react";
-import { format, isPast, parseISO } from "date-fns";
+import { safeFormat, isOverdue, formatDateForInput } from "@/lib/utils";
 import type { Gender, Level, Role, Task, User } from "@/lib/api/types";
 import { usersApi } from "@/lib/api/users.api";
 import { projectsApi } from "@/lib/api/projects.api";
@@ -37,9 +38,10 @@ export interface ProfileViewProps {
 export function ProfileView({ user, viewerRole, isSelf, onUpdated }: ProfileViewProps) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState<User & { password?: string }>({ ...user, password: "" });
+  const [activeTab, setActiveTab] = useState("info");
+  const [form, setForm] = useState<User & { password?: string }>({ ...user, birthday: formatDateForInput(user.birthday), password: "" });
 
-  useEffect(() => { setForm({ ...user, password: "" }); }, [user.id]); // eslint-disable-line
+  useEffect(() => { setForm({ ...user, birthday: formatDateForInput(user.birthday), password: "" }); }, [user.id]); // eslint-disable-line
 
   // Employees can only edit themselves; if not self, they can't edit anything
   const editable: EditableField[] = isSelf || viewerRole !== "employee" ? PERMS[viewerRole] : [];
@@ -49,10 +51,17 @@ export function ProfileView({ user, viewerRole, isSelf, onUpdated }: ProfileView
     mutationFn: () => {
       const patch: Partial<User> & { password?: string } = {};
       for (const f of editable) {
+        if (f === "password" && (!form.password || !form.password.trim())) continue;
         // @ts-expect-error - dynamic key
         patch[f] = form[f];
       }
-      return usersApi.update(user.id, patch);
+      // Employee editing self  → PATCH /api/users/me
+      // HR editing any user   → PATCH /api/users/{id}
+      // Admin editing any user → PATCH /api/admin/users/{id}
+      if (isSelf && viewerRole === "employee") return usersApi.updateSelf(patch);
+      return viewerRole === "admin"
+        ? usersApi.adminUpdate(user.id, patch)
+        : usersApi.update(user.id, patch);
     },
     onSuccess: (u) => {
       toast.success("Profile saved");
@@ -66,9 +75,10 @@ export function ProfileView({ user, viewerRole, isSelf, onUpdated }: ProfileView
     if (!f) return;
     try {
       const { url } = await uploadApi.upload(f);
-      setForm((p) => ({ ...p, avatarUrl: url }));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload failed");
+      setForm((prev) => ({ ...prev, avatarUrl: url }));
+      toast.success("Avatar uploaded — click Save changes to apply");
+    } catch {
+      toast.error("Upload failed");
     }
   }
 
@@ -76,17 +86,17 @@ export function ProfileView({ user, viewerRole, isSelf, onUpdated }: ProfileView
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="info">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <TabsList className="bg-accent/50 p-1 rounded-full">
             <TabsTrigger value="info" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4">Profile</TabsTrigger>
             <TabsTrigger value="projects" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4">Projects</TabsTrigger>
             <TabsTrigger value="activity" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4">Activity</TabsTrigger>
           </TabsList>
-          {anyEditable && (
+          {anyEditable && activeTab === "info" && (
             <button
               onClick={() => save.mutate()}
-              disabled={save.isPending}
+              disabled={save.isPending || (can("name") && !form.name?.trim()) || (can("email") && !form.email?.trim())}
               className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-primary/90 disabled:opacity-60"
             >
               <Save className="h-4 w-4" /> {save.isPending ? "Saving…" : "Save changes"}
@@ -170,7 +180,7 @@ export function ProfileView({ user, viewerRole, isSelf, onUpdated }: ProfileView
                 <RWText label="Mobile number" value={form.mobile} editable={can("mobile")} onChange={(v) => setForm({ ...form, mobile: v })} />
                 <RWText label="Skype" value={form.skype} editable={can("skype")} onChange={(v) => setForm({ ...form, skype: v })} />
                 {can("password") && (
-                  <RWText label="Set new password" value={form.password ?? ""} type="text" editable
+                  <RWText label="Set new password (Optional)" value={form.password ?? ""} type="text" editable
                     onChange={(v) => setForm({ ...form, password: v })} />
                 )}
               </Section>
@@ -201,7 +211,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function RWText({
   label, value, onChange, type = "text", editable,
-}: { label: string; value: string; onChange: (v: string) => void; type?: string; editable: boolean }) {
+}: { label: string; value?: string; onChange: (v: string) => void; type?: string; editable: boolean }) {
   return (
     <div className="space-y-1">
       <label className="text-xs text-muted-foreground">{label}</label>
@@ -217,7 +227,7 @@ function RWText({
 
 function RWSelect({
   label, value, onChange, options, editable,
-}: { label: string; value: string; onChange: (v: string) => void; options: string[]; editable: boolean }) {
+}: { label: string; value?: string; onChange: (v: string) => void; options: string[]; editable: boolean }) {
   return (
     <div className="space-y-1">
       <label className="text-xs text-muted-foreground">{label}</label>
@@ -235,9 +245,34 @@ function RWSelect({
   );
 }
 
+function useUserTasks(user: User, projects: import("@/lib/api/types").Project[]) {
+  const { data: projectTasks = [] } = useQuery({
+    queryKey: ["tasks", "all-projects", projects.map((p) => p.id)],
+    queryFn: async () => {
+      const lists = await Promise.all(projects.map((p) => tasksApi.list(p.id)));
+      return lists.flat();
+    },
+    enabled: projects.length > 0,
+  });
+  const { data: myTasks = [] } = useQuery({
+    queryKey: ["tasks", "me"],
+    queryFn: () => tasksApi.mine(),
+  });
+
+  return useMemo(() => {
+    const map = new Map<string, Task>();
+    for (const t of projectTasks) map.set(t.id, t);
+    for (const t of myTasks) {
+      if (!map.has(t.id)) map.set(t.id, t);
+    }
+    const all = Array.from(map.values());
+    return all.filter((t) => (t.assigneeIds || []).includes(user.id));
+  }, [projectTasks, myTasks, user.id]);
+}
+
 function ProjectsTab({ user }: { user: User }) {
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: projectsApi.list });
-  const { data: tasks = [] } = useQuery({ queryKey: ["tasks"], queryFn: () => tasksApi.list() });
+  const userTasks = useUserTasks(user, projects);
   const mine = projects.filter((p) => p.memberIds.includes(user.id) || p.leadId === user.id);
 
   return (
@@ -248,10 +283,15 @@ function ProjectsTab({ user }: { user: User }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {mine.map((p) => {
-            const open = tasks.filter((t) => t.projectId === p.id && t.assigneeIds.includes(user.id) && t.status !== "done").length;
-            const overdue = p.deadline && isPast(parseISO(p.deadline)) && p.status !== "completed";
+            const open = userTasks.filter((t) => (t.projectId === p.id || t.projectName === p.name) && t.status !== "done").length;
+            const overdue = p.deadline && isOverdue(p.deadline) && p.status !== "completed";
             return (
-              <div key={p.id} className="rounded-xl border border-border/60 p-3">
+              <Link
+                key={p.id}
+                to="/projects"
+                search={{ projectId: p.id }}
+                className="block rounded-xl border border-border/60 p-3 hover:bg-accent/40 transition"
+              >
                 <div className="flex items-center justify-between">
                   <div className="text-[11px] text-muted-foreground">{p.code}</div>
                   <Chip tone={priorityTone(p.priority)}>{p.priority}</Chip>
@@ -262,11 +302,11 @@ function ProjectsTab({ user }: { user: User }) {
                   <span>{open} open task{open === 1 ? "" : "s"}</span>
                   {p.deadline && (
                     <span className={overdue ? "text-destructive font-medium" : ""}>
-                      Due {format(parseISO(p.deadline), "MMM d")}
+                      Due {safeFormat(p.deadline, "MMM d", "")}
                     </span>
                   )}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -276,9 +316,8 @@ function ProjectsTab({ user }: { user: User }) {
 }
 
 function ActivityTab({ user }: { user: User }) {
-  const { data: tasks = [] } = useQuery({ queryKey: ["tasks"], queryFn: () => tasksApi.list() });
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: projectsApi.list });
-  const mine = tasks.filter((t) => t.assigneeIds.includes(user.id));
+  const mine = useUserTasks(user, projects);
 
   const stats = useMemo(() => ({
     todo: mine.filter((t) => t.status === "todo").length,
@@ -287,7 +326,7 @@ function ActivityTab({ user }: { user: User }) {
     done: mine.filter((t) => t.status === "done").length,
   }), [mine]);
 
-  const sorted = [...mine].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const sorted = [...mine].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
   return (
     <div className="space-y-4">
@@ -308,7 +347,15 @@ function ActivityTab({ user }: { user: User }) {
             {sorted.map((t: Task) => {
               const p = projects.find((x) => x.id === t.projectId);
               return (
-                <div key={t.id} className="py-3 flex items-center gap-3 flex-wrap">
+                <Link
+                  key={t.id}
+                  to="/projects"
+                  search={{
+                    projectId: t.projectId || projects.find((x) => x.id === t.projectId || x.name === (t as any).projectName)?.id,
+                    taskId: t.id,
+                  }}
+                  className="py-3 flex items-center gap-3 flex-wrap hover:bg-accent/40 rounded-lg px-2 transition"
+                >
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-muted-foreground">{p?.code}</div>
                     <div className="text-sm font-medium truncate">{t.name}</div>
@@ -318,7 +365,7 @@ function ActivityTab({ user }: { user: User }) {
                   <div className="text-xs text-muted-foreground tabular-nums flex items-center gap-1">
                     <Clock3 className="h-3 w-3" />{t.spentHours}h / {t.estimateHours}h
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
