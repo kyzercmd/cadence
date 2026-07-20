@@ -48,8 +48,17 @@ func LoadConfig() *Config {
 		log.Fatalf("Failed to create connection pool: %v", err)
 	}
 
-	if err = pool.Ping(ctx); err != nil {
-		log.Fatalf("Failed to ping database %v", err)
+	for i := range 5 {
+		err := pool.Ping(ctx)
+		if err == nil {
+			break
+		}
+		log.Printf("Waiting for database.. Attempt: %d/5", i+1)
+
+		if i == 4 {
+			log.Fatalf("Failed to ping database %v", err)
+		}
+		time.Sleep(3 * time.Second)
 	}
 
 	return &Config{

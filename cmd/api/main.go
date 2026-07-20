@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kyzercmd/cadence/internal/config"
+	"github.com/kyzercmd/cadence/internal/db"
 	"github.com/kyzercmd/cadence/internal/handler"
 	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/kyzercmd/cadence/internal/repository"
@@ -54,6 +55,10 @@ func main() {
 	StorageService, err := service.NewR2StorageService(cfg.R2AccountID, cfg.R2AccessKey, cfg.R2SecretKey, cfg.R2BucketName, cfg.R2PublicURL)
 	if err != nil {
 		log.Fatalf("Failed to create Storage Service: %v", err)
+	}
+
+	if err := db.Migrate(context.Background(), cfg.DB); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	err = authService.SeedAdmin(context.Background(), cfg.AdminEmail, cfg.AdminPassword)
