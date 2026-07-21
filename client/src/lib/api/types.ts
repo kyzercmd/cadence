@@ -1,5 +1,5 @@
 // Shared DTOs for the CRM API. Keep this file framework-agnostic so the
-// same types work against the mock adapter and a future real backend.
+// Shared TypeScript definitions for frontend-backend communication.
 
 export type Role = "admin" | "hr" | "employee";
 export type Level = "Junior" | "Middle" | "Senior";

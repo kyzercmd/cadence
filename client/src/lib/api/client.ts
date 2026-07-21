@@ -3,11 +3,7 @@
 //   then replays all queued requests with the new token.
 // - If the refresh itself fails, calls onAuthFailure() (set by AuthProvider).
 
-import { mockHandle } from "./mock/handler";
-
 const BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
-const USE_MOCK =
-  (import.meta.env.VITE_USE_MOCK as string | undefined) !== "false" && !BASE_URL;
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -116,11 +112,6 @@ async function doRefresh(): Promise<string> {
 
 // ── Core request ──────────────────────────────────────────────────────────────
 async function request<T>(req: ApiRequest, isRetry = false): Promise<T> {
-  if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 120));
-    return mockHandle<T>(req, authToken);
-  }
-
   const url = new URL(req.path, BASE_URL);
   if (req.query) {
     for (const [k, v] of Object.entries(req.query)) {
