@@ -13,6 +13,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.27
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.26
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.104.2
+	github.com/brianvoe/gofakeit/v7 v7.15.0
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/justinas/alice v1.2.0
 	github.com/swaggo/http-swagger v1.3.4
