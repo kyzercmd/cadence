@@ -76,30 +76,36 @@ function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Panel title="Projects">
-            <div className="space-y-2">
-              {projects.slice(0, 6).map((p) => {
-                const inReview = allTasks.filter(
-                  (t) => t.projectId === p.id && t.status === "in_review",
-                ).length;
-                return (
-                  <Link
-                    key={p.id}
-                    to="/projects"
-                    search={{ projectId: p.id }}
-                    className="flex items-center justify-between rounded-xl border border-border/60 p-3 hover:bg-accent/40 transition gap-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-[11px] text-muted-foreground">{p.code}</div>
-                      <div className="font-medium text-sm truncate">{p.name}</div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-                      {inReview > 0 && <Chip tone="purple">{inReview} in review</Chip>}
-                      <Chip tone={priorityTone(p.priority)}>{p.priority}</Chip>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+            {projects.length === 0 ? (
+              <div className="text-sm text-muted-foreground text-center py-8">
+                No projects yet.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {projects.slice(0, 6).map((p) => {
+                  const inReview = allTasks.filter(
+                    (t) => t.projectId === p.id && t.status === "in_review",
+                  ).length;
+                  return (
+                    <Link
+                      key={p.id}
+                      to="/projects"
+                      search={{ projectId: p.id }}
+                      className="flex items-center justify-between rounded-xl border border-border/60 p-3 hover:bg-accent/40 transition gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-muted-foreground">{p.code}</div>
+                        <div className="font-medium text-sm truncate">{p.name}</div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+                        {inReview > 0 && <Chip tone="purple">{inReview} in review</Chip>}
+                        <Chip tone={priorityTone(p.priority)}>{p.priority}</Chip>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </Panel>
 
           <Panel title="Pending leave requests">

@@ -279,14 +279,14 @@ function EmployeeDialog({ open, onOpenChange, mode, initial, isAdmin }: Employee
   const empty: Partial<User> & { password?: string } = {
     name: "",
     email: "",
-    position: "UI/UX Designer",
+    position: "",
     level: "Junior",
     gender: "Male",
     birthday: "1995-01-01",
     role: "employee",
     mobile: "",
     skype: "",
-    location: "NYC, New York, USA",
+    location: "",
     password: "",
   };
   const [form, setForm] = useState<Partial<User> & { password?: string }>(empty);
