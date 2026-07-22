@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/kyzercmd/cadence/internal/models"
 	"github.com/kyzercmd/cadence/internal/repository"
 )
@@ -12,6 +13,7 @@ type ProjectService interface {
 	GetProjects(ctx context.Context, userID string, userRole models.Role) ([]*models.GetProjectResponse, error)
 	GetProjectByID(ctx context.Context, projectID string) (*models.GetProjectResponse, error)
 	UpdateProjectByID(ctx context.Context, projectID string, payload *models.UpdateProjectPayload) error
+	DeleteProjectByID(ctx context.Context, projectID string) error
 }
 
 type projectService struct {
@@ -44,4 +46,13 @@ func (s *projectService) GetProjectByID(ctx context.Context, projectID string) (
 
 func (s *projectService) UpdateProjectByID(ctx context.Context, projectID string, payload *models.UpdateProjectPayload) error {
 	return s.repo.UpdateProject(ctx, projectID, payload)
+}
+
+func (s *projectService) DeleteProjectByID(ctx context.Context, projectID string) error {
+	err := uuid.Validate(projectID)
+	if err != nil {
+		return models.ErrInvalidProjectID
+	}
+
+	return s.repo.DeleteProjectByID(ctx, projectID)
 }

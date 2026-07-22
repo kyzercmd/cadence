@@ -164,3 +164,29 @@ func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 }
+
+func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
+	projectID := r.PathValue("projectid")
+	err := h.ProjectService.DeleteProjectByID(r.Context(), projectID)
+	if err != nil {
+		if errors.Is(err, models.ErrProjectNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, models.ErrInvalidProjectID) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Failed to delete project", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	response := map[string]any{
+		"message":   "Project deleted successfuly",
+		"projectID": projectID,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}

@@ -78,6 +78,7 @@ func mapRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	mux.Handle("GET /api/projects/{projectid}", protectedChain.ThenFunc(h.Project.GetProjectByID))
 	mux.Handle("POST /api/projects", HRChain.ThenFunc(h.Project.CreateProject))
 	mux.Handle("PUT /api/projects/{projectid}", HRChain.ThenFunc(h.Project.UpdateProject))
+	mux.Handle("DELETE /api/projects/{projectid}", HRChain.ThenFunc(h.Project.DeleteProject))
 
 	//Task
 	mux.Handle("POST /api/projects/{projectid}/tasks", protectedChain.ThenFunc(h.Task.CreateTask))

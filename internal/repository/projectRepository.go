@@ -17,6 +17,7 @@ type ProjectRepository interface {
 	GetProjectByID(ctx context.Context, projectID string) (*models.GetProjectResponse, error)
 	UpdateProject(ctx context.Context, projectID string, payload *models.UpdateProjectPayload) error
 	SearchProjects(ctx context.Context, query string, userID string, role models.Role) ([]*models.Project, error)
+	DeleteProjectByID(ctx context.Context, projectID string) error
 }
 
 type postgresProjectRepository struct {
@@ -270,4 +271,21 @@ func (r *postgresProjectRepository) SearchProjects(ctx context.Context, query st
 	}
 
 	return projects, nil
+}
+
+func (r *postgresProjectRepository) DeleteProjectByID(ctx context.Context, projectID string) error {
+	query := `
+			DELETE FROM projects WHERE id = $1
+	
+			`
+	result, err := r.db.Exec(ctx, query, projectID)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected := result.RowsAffected(); rowsAffected == 0 {
+		return models.ErrProjectNotFound
+	}
+
+	return err
 }

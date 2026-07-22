@@ -20,6 +20,7 @@ var (
 	ErrUserNotAssigned   = errors.New("User is not assigned to task")
 	ErrHoursLessThanZero = errors.New("Logged hour must be greater than zero")
 	ErrProjectCodeExists = errors.New("A project with this code already exists")
+	ErrInvalidProjectID  = errors.New("Invalid Project ID")
 )
 
 var (
