@@ -8,7 +8,6 @@ import (
 	"github.com/kyzercmd/cadence/internal/handler"
 	"github.com/kyzercmd/cadence/internal/middleware"
 	"github.com/kyzercmd/cadence/internal/models"
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Handlers struct {
@@ -29,7 +28,7 @@ type Middlewares struct {
 func SetupRoutes(h Handlers, m Middlewares) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+	registerSwagger(mux)
 
 	mapRoutes(mux, h, m)
 
