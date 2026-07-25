@@ -64,7 +64,7 @@ func LoadConfig() *Config {
 	return &Config{
 		Port:          os.Getenv("PORT"),
 		DB:            pool,
-		JWTSecret:     os.Getenv("JWTSecret"),
+		JWTSecret:     os.Getenv("JWT_SECRET"),
 		AdminEmail:    os.Getenv("ADMIN_EMAIL"),
 		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
 		R2AccountID:   os.Getenv("R2_ACCOUNT_ID"),
