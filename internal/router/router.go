@@ -42,6 +42,12 @@ func mapRoutes(mux *http.ServeMux, h Handlers, m Middlewares) {
 	HRChain := protectedChain.Append(middleware.RequireRole(models.RoleHR, models.RoleAdmin))
 	AdminChain := protectedChain.Append(middleware.RequireRole(models.RoleAdmin))
 
+	//Health
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
 	//Auths
 	mux.HandleFunc("POST /api/auth/login", h.Auth.Login)
 	mux.HandleFunc("POST /api/auth/refresh", h.Auth.Refresh)
