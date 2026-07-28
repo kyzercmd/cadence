@@ -1,6 +1,6 @@
 # Cadence
 
-Cadence is a CRM and internal operations portal designed with strict role-based access control and a monolithic REST API.
+Cadence is a CRM and internal operations portal designed with strict role-based access control and a minimal-dependency backend architecture.
 
 > Note: The frontend was rapidly prototyped and generated using AI.
 
@@ -56,7 +56,7 @@ docker-compose up -d db
 
 Make sure to change directory into the root before running the backend commands.
 
-Populate the database with synthetic development data (this also runs our schema migrations):
+Populate the database with synthetic development data (optional):
 
 ```bash
 go run ./cmd/seed
