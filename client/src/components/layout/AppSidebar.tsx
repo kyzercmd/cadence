@@ -70,9 +70,12 @@ export function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="m-4 rounded-2xl bg-accent/50 p-3 text-center">
         <img src="/help.svg" alt="Support" className="h-24 w-full mb-2" />
-        <button className="w-full rounded-xl bg-primary text-primary-foreground text-sm font-medium py-2 hover:bg-primary/90 transition">
+        <a 
+          href="mailto:support@yourcompany.com?subject=Support%20Request"
+          className="w-full block rounded-xl bg-primary text-primary-foreground text-sm font-medium py-2 hover:bg-primary/90 transition"
+        >
           Support
-        </button>
+        </a>
       </div>
 
       <button
