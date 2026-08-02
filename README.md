@@ -38,33 +38,33 @@ The backend is a REST API written in Go. It uses a layered architecture (Handler
 ## Performance Benchmarks
 
 **Target**: `GET /api/search?q=<term>` (Admin role, 3 concurrent DB queries per request)  
-**Constraint**: 0.5 vCPU / 256 MB RAM (Go Application)  
-**Tool**: k6 (Note: Application rate limiter disabled during tests)
+**Constraint**: 0.5 vCPU / 256 MB RAM  
+**Dataset Size**: ~2,000 rows  
+**Tool**: Grafana k6
 
-![Throughput RPS](docs/bench_rps.jpg)
-![Latency and RAM](docs/bench_latency_ram.jpg)
+<p align="center">
+  <img src="docs/bench_rps.jpg" width="48%" />
+  <img src="docs/bench_latency_ram.jpg" width="48%" />
+</p>
 
 ### Results
 
 | Scenario       | Concurrency (VUs) | Throughput (RPS) | p(95) Latency | Peak RAM | CPU Usage | Error Rate |
 | -------------- | ----------------- | ---------------- | ------------- | -------- | --------- | ---------- |
-| Baseline       | 20                | 18               | 1.8ms         | ~10 MB   | ~3%       | 0%         |
-| CPU Saturated  | 100               | 1,393            | 92ms          | ~15 MB   | ~50%      | 0%         |
-| Pool Exhausted | 500               | 1,407            | 306ms         | ~55 MB   | ~50%      | 0%         |
+| CPU Boundary   | Ramp (Max 130)    | 558              | 46.5ms        | ~15 MB   | ~50%      | 0%         |
+| Pool Exhausted | 500               | 1,424            | 301.7ms       | ~55 MB   | ~50%      | 0%         |
 
-### Key Findings
+- **Safe Capacity (~550 RPS)**: The application processes requests smoothly up to roughly ~550 RPS.
+- **Absolute Ceiling (~1,424 RPS)**: The server can physically process a maximum of ~1,424 requests per second, but latency degrades significantly as users wait in the queue.
+- **Connection Pooling**: At 500 concurrent connections, the database pool is exhausted. Requests are queued, resulting in a 0% error rate but inflating p(95) latency to 301.7ms as connections are awaited.
+- **Memory Efficiency**: The server uses ~11 MB at idle/low load and peaked at ~55 MB under extreme congestion.
 
-- **Safe Capacity (~850 RPS)**: The application processes requests instantly up to roughly 850 RPS.
-- **Absolute Ceiling (~1,400 RPS)**: The server can physically process a maximum of ~1,400 requests per second, but latency degrades significantly as users wait in the queue.
-- **Connection Pooling**: At 500 concurrent connections, the database pool is exhausted. Requests are queued, resulting in a 0% error rate but inflating p(95) latency to 306ms as connections are awaited.
-- **Memory Efficiency**: The server requires ~11 MB at idle/low load and peaked at ~55 MB under extreme congestion.
+### Reproduce
 
-### Reproduction
-
-Start the application with Docker constraints applied, retrieve an admin JWT token, and execute the load script:
+Start the application with Docker constraints applied, retrieve an admin JWT token, and execute the load script (might have to seed db and remove rateLimiter Middleware):
 
 ```bash
-# 1. Start bounded containers (explicitly applying benchmark constraints)
+# 1. Start bounded containers
 docker compose -f compose.yaml -f compose.bench.yaml up --build -d
 
 # 2. Find CPU boundary (Arrival rate ramp)

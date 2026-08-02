@@ -13,8 +13,8 @@ import (
 	"github.com/kyzercmd/cadence/internal/config"
 )
 
-var numUsers = 20
-var numProjects = 10
+var numUsers = 150
+var numProjects = 25
 
 var (
 	roles         = []string{"admin", "hr", "employee"}
@@ -63,7 +63,7 @@ func main() {
 	fmt.Printf("Inserted %v projects.\n", numProjects)
 
 	for _, pID := range projectIDs {
-		for range 4 {
+		for range 5 {
 			uID := userIDs[gofakeit.Number(0, numUsers-1)]
 			_, err := tx.Exec(ctx, `INSERT INTO project_members (project_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, pID, uID)
 			if err != nil {
@@ -71,7 +71,7 @@ func main() {
 			}
 		}
 
-		for range 5 {
+		for range 10 {
 			tID := uuid.New()
 			_, err := tx.Exec(ctx, `INSERT INTO tasks (id, project_id, name, description, status, priority, estimate_hours, due_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, tID, pID, gofakeit.VerbAction(), gofakeit.Sentence(10), taskStatuses[gofakeit.Number(0, 3)], priorities[gofakeit.Number(0, 2)], gofakeit.Number(1, 30), gofakeit.DateRange(time.Now().AddDate(0, 0, -7), time.Now().AddDate(0, 0, 14)))
 			if err != nil {
