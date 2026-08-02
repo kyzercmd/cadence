@@ -1,6 +1,7 @@
-# Cadence
-
-Cadence is a CRM and internal operations portal designed with strict role-based access control and a minimal-dependency backend architecture.
+<div align="center">
+  <img src="client/public/logo7bg.png" alt="Cadence Logo" width="250" style="background-color: white; padding: 20px; border-radius: 8px;"/>
+  <p>A CRM and internal operations portal designed with strict role-based access control and a minimal-dependency backend architecture.</p>
+</div>
 
 > Note: The frontend was rapidly prototyped and generated using AI.
 
@@ -33,6 +34,45 @@ The backend is a REST API written in Go. It uses a layered architecture (Handler
 - **Backend:** Go, net/http, PostgreSQL (pgx), JWT
 - **Frontend:** TypeScript, React, TanStack Start, Tailwind CSS, Bun
 - **Infrastructure:** Docker, Docker Compose, Cloudflare R2 (S3-compatible API)
+
+## Performance Benchmarks
+
+**Target**: `GET /api/search?q=<term>` (Admin role, 3 concurrent DB queries per request)  
+**Constraint**: 0.5 vCPU / 256 MB RAM (Go Application)  
+**Tool**: k6 (Note: Application rate limiter disabled during tests)
+
+![Throughput RPS](docs/bench_rps.jpg)
+![Latency and RAM](docs/bench_latency_ram.jpg)
+
+### Results
+
+| Scenario       | Concurrency (VUs) | Throughput (RPS) | p(95) Latency | Peak RAM | CPU Usage | Error Rate |
+| -------------- | ----------------- | ---------------- | ------------- | -------- | --------- | ---------- |
+| Baseline       | 20                | 18               | 1.8ms         | ~10 MB   | ~3%       | 0%         |
+| CPU Saturated  | 100               | 1,393            | 92ms          | ~15 MB   | ~50%      | 0%         |
+| Pool Exhausted | 500               | 1,407            | 306ms         | ~55 MB   | ~50%      | 0%         |
+
+### Key Findings
+
+- **Safe Capacity (~850 RPS)**: The application processes requests instantly up to roughly 850 RPS.
+- **Absolute Ceiling (~1,400 RPS)**: The server can physically process a maximum of ~1,400 requests per second, but latency degrades significantly as users wait in the queue.
+- **Connection Pooling**: At 500 concurrent connections, the database pool is exhausted. Requests are queued, resulting in a 0% error rate but inflating p(95) latency to 306ms as connections are awaited.
+- **Memory Efficiency**: The server requires ~11 MB at idle/low load and peaked at ~55 MB under extreme congestion.
+
+### Reproduction
+
+Start the application with Docker constraints applied, retrieve an admin JWT token, and execute the load script:
+
+```bash
+# 1. Start bounded containers (explicitly applying benchmark constraints)
+docker compose -f compose.yaml -f compose.bench.yaml up --build -d
+
+# 2. Find CPU boundary (Arrival rate ramp)
+k6 run --env TOKEN=<admin_jwt> --env MODE=ramp scripts/search_load.js
+
+# 3. Test pool exhaustion (500 VUs)
+k6 run --env TOKEN=<admin_jwt> --env MODE=peak scripts/search_load.js
+```
 
 ## Environment Variables
 
