@@ -32,6 +32,7 @@ func SetupRoutes(h Handlers, m Middlewares) http.Handler {
 
 	mapRoutes(mux, h, m)
 
+	//REMOVE RateLimiter from chain for testing
 	globalChain := alice.New(middleware.RecoverPanic, middleware.EnableCORS, middleware.RateLimiter, middleware.LimitBodySize, middleware.CommonHeaders)
 
 	return globalChain.Then(mux)
