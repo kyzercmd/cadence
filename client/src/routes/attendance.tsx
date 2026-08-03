@@ -44,6 +44,8 @@ function EmployeeAttendanceView() {
 }
 
 // ---------- Admin & HR ----------
+const PAGE_SIZE = 8;
+
 function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: () => usersApi.list() });
   const { data: all = [] } = useQuery({ queryKey: ["attendance", "all"], queryFn: attendanceApi.teamHistory });
@@ -51,6 +53,7 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = users.find((u) => u.id === selectedId);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const sorted = useMemo(() => {
     const latest = new Map<string, string>();
@@ -63,6 +66,9 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
       .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => (latest.get(b.id) ?? "").localeCompare(latest.get(a.id) ?? ""));
   }, [nonAdmins, all, search]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = useMemo(() => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [sorted, page]);
 
   if (selected) {
     return (
@@ -84,7 +90,10 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             placeholder="Search employees"
             className="rounded-full bg-card pl-9 pr-4 py-2 text-sm shadow-sm border border-transparent focus:outline-none focus:border-primary/40"
           />
@@ -99,7 +108,7 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
         <div className="px-5 py-3 text-xs text-muted-foreground">
           Click an employee to view their attendance history.
         </div>
-        {sorted.map((u) => {
+        {paged.map((u) => {
           const empAtt = all.find((a) => a.userId === u.id);
           const dt = empAtt?.lastUpdate || (empAtt as any)?.date;
           return (
@@ -130,6 +139,27 @@ function ManagementAttendanceView({ canClock }: { canClock: boolean }) {
         {sorted.length === 0 && (
           <div className="px-5 py-8 text-center text-muted-foreground text-sm">No employees found.</div>
         )}
+      </div>
+
+      <div className="flex items-center justify-end text-sm text-muted-foreground gap-3">
+        <span>
+          {sorted.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-
+          {Math.min(page * PAGE_SIZE, sorted.length)} of {sorted.length}
+        </span>
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+          className="px-3 py-1 rounded-full disabled:opacity-40 hover:bg-accent"
+        >
+          ←
+        </button>
+        <button
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+          className="px-3 py-1 rounded-full disabled:opacity-40 hover:bg-accent"
+        >
+          →
+        </button>
       </div>
     </div>
   );

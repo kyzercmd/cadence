@@ -293,7 +293,7 @@ function ProjectsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
         {/* Project list */}
-        <div className="bg-card rounded-2xl p-3 shadow-sm space-y-1 h-fit">
+        <div className="bg-card rounded-2xl p-3 shadow-sm space-y-1 h-fit max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
           <div className="px-3 py-2 text-sm font-semibold">Current Projects</div>
           {projects.map((p) => {
             const isSelected = selected?.id === p.id;
