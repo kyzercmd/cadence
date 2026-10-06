@@ -38,8 +38,8 @@ func LoadConfig() *Config {
 		log.Fatalf("Failed to parse database dsn: %v", err)
 	}
 
-	poolConfig.MaxConns = 25
-	poolConfig.MinConns = 25
+	poolConfig.MaxConns = 15
+	poolConfig.MinConns = 15
 	poolConfig.MaxConnLifetime = 15 * time.Minute
 	poolConfig.MaxConnIdleTime = 5 * time.Minute
 
