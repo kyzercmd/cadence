@@ -38,26 +38,31 @@ The backend is a REST API written in Go. It uses a layered architecture (Handler
 ## Performance Benchmarks
 
 **Target**: `GET /api/search?q=<term>` (Admin role, 3 concurrent DB queries per request)  
-**Constraint**: 0.5 vCPU / 256 MB RAM  
-**Dataset Size**: ~2,000 rows  
+**Constraint**: 1 vCPU / 512 MB RAM  
+**Dataset Size**: ~10,500 rows, 15 connections pool  
 **Tool**: Grafana k6
-
-<p align="center">
-  <img src="docs/bench_rps.jpg" width="48%" />
-  <img src="docs/bench_latency_ram.jpg" width="48%" />
-</p>
 
 ### Results
 
-| Scenario       | Concurrency (VUs) | Throughput (RPS) | p(95) Latency | Peak RAM | CPU Usage | Error Rate |
-| -------------- | ----------------- | ---------------- | ------------- | -------- | --------- | ---------- |
-| CPU Boundary   | Ramp (Max 130)    | 558              | 46.5ms        | ~15 MB   | ~50%      | 0%         |
-| Pool Exhausted | 500               | 1,424            | 301.7ms       | ~55 MB   | ~50%      | 0%         |
+#### Capacity
 
-- **Safe Capacity (~550 RPS)**: The application processes requests smoothly up to roughly ~550 RPS.
-- **Absolute Ceiling (~1,424 RPS)**: The server can physically process a maximum of ~1,424 requests per second, but latency degrades significantly as users wait in the queue.
-- **Connection Pooling**: At 500 concurrent connections, the database pool is exhausted. Requests are queued, resulting in a 0% error rate but inflating p(95) latency to 301.7ms as connections are awaited.
-- **Memory Efficiency**: The server uses ~11 MB at idle/low load and peaked at ~55 MB under extreme congestion.
+|          Load |  p95 Latency | Error Rate |
+| ------------: | -----------: | ---------: |
+| 1900 RPS | 5.38 ms |     0% |
+
+The service sustained **1900 RPS** while remaining within p95 < 50ms.
+
+#### Saturation
+
+|   Load    | p95 Latency | Error Rate |
+| --------: | ----------: | ---------: |
+| 2,100 RPS |    67.49 ms |        0% |
+| 2,150 RPS |   266.52 ms |        0% |
+| 2,250 RPS |   269.80 ms |        0% |
+
+Saturation begins around **2,100 RPS**, where p95 latency exceeds 50 ms and increases sharply with further load.
+
+The limiting factor was 1 vCPU after which latency increases exponentially, The memory usage was ~20 mb.
 
 ### Reproduce
 
@@ -67,10 +72,10 @@ Start the application with Docker constraints applied, retrieve an admin JWT tok
 # 1. Start bounded containers
 docker compose -f compose.yaml -f compose.bench.yaml up --build -d
 
-# 2. Find CPU boundary (Arrival rate ramp)
-k6 run --env TOKEN=<admin_jwt> --env MODE=ramp scripts/search_load.js
+# 2. Find capacity (constant arrival rate)
+k6 run --env TOKEN=<admin_jwt> --env MODE=capacity scripts/search_load.js
 
-# 3. Test pool exhaustion (500 VUs)
+# 3. Test peak concurrency (500 VUs)
 k6 run --env TOKEN=<admin_jwt> --env MODE=peak scripts/search_load.js
 ```
 
